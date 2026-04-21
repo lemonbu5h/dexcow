@@ -1,0 +1,32 @@
+{
+  "name": "dexcow",
+  "version": "0.1.0",
+  "description": "A cow that eats your Codex sessions. Interactive cleanup for ~/.codex/sessions.",
+  "type": "module",
+  "bin": {
+    "dexcow": "./dist/dexcow.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bun build src/index.ts --target=bun --outfile=dist/dexcow.js --minify",
+    "compile": "bun build src/index.ts --compile --outfile=dist/dexcow",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "keywords": ["codex", "cli", "cleanup", "sessions"],
+  "license": "MIT"
+}
