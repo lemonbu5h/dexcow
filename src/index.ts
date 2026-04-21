@@ -44,7 +44,7 @@ async function main(argv: string[]): Promise<void> {
         return;
       case "ls":
       case "list":
-        runList();
+        await runList();
         return;
       case "rm":
       case "delete":
