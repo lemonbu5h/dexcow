@@ -106,6 +106,7 @@ async function deleteMany(
   let removed = 0;
   let missingFiles = 0;
   for (const t of threads) {
+    // Move/delete the rollout first so a filesystem failure does not orphan the database row.
     const movedOrGone = opts.hard
       ? await hardDelete(t.rolloutPath)
       : (await moveToTrash(t.rolloutPath)) !== null;

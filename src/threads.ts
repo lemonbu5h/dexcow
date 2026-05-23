@@ -33,6 +33,7 @@ export function openDb(): Database {
 }
 
 export async function listThreads(db: Database): Promise<Thread[]> {
+  // The database owns deletion state; session_index.jsonl only improves the title shown to users.
   const names = await loadThreadNames();
   return db.query(SELECT_ALL).all().map((r) => toThread(r, names));
 }
@@ -60,6 +61,7 @@ function resolveTitle(id: string, rawTitle: string, names: ThreadNameMap): strin
 }
 
 function fallbackTitle(raw: string): string {
+  // Codex titles can contain full markdown snippets; use the first readable line as a compact fallback.
   const firstLine = raw.split(/\r?\n/).find((l) => l.trim().length > 0) ?? "";
   const stripped = stripMarkdownLinks(firstLine).replace(/\s+/g, " ").trim();
   return stripped.length === 0 ? "(untitled)" : stripped;

@@ -10,6 +10,7 @@ interface IndexEntry {
 export type ThreadNameMap = Map<string, string>;
 
 export async function loadThreadNames(): Promise<ThreadNameMap> {
+  // The JSONL index may contain repeated names for a thread; keep the newest entry for display.
   const latest = new Map<string, IndexEntry>();
   const raw = await safeRead(paths.sessionIndex);
   if (raw === null) return new Map();
