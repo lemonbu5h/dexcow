@@ -14,7 +14,7 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
 
   const db = openDb();
   try {
-    const threads = listThreads(db);
+    const threads = await listThreads(db);
     if (threads.length === 0) {
       p.note("No Codex sessions found.", "empty");
       p.outro("nothing to eat 🐄");
@@ -54,10 +54,10 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
   }
 }
 
-export function runList(): void {
+export async function runList(): Promise<void> {
   const db = openDb();
   try {
-    const threads = listThreads(db);
+    const threads = await listThreads(db);
     if (threads.length === 0) {
       console.log("(no sessions)");
       return;
@@ -75,7 +75,7 @@ export async function runRemove(ids: string[], opts: DeleteOptions): Promise<voi
   }
   const db = openDb();
   try {
-    const threads = listThreads(db);
+    const threads = await listThreads(db);
     const byId = new Map(threads.map((t) => [t.id, t]));
     const chosen: Thread[] = [];
     for (const id of ids) {
@@ -106,6 +106,7 @@ async function deleteMany(
   let removed = 0;
   let missingFiles = 0;
   for (const t of threads) {
+    // Move/delete the rollout first so a filesystem failure does not orphan the database row.
     const movedOrGone = opts.hard
       ? await hardDelete(t.rolloutPath)
       : (await moveToTrash(t.rolloutPath)) !== null;
@@ -126,7 +127,7 @@ function summarize(r: DeleteResult, opts: DeleteOptions): string {
 function renderOptionLabel(t: Thread): string {
   const age = relativeTime(t.updatedAt).padStart(4);
   const tag = t.archived ? pc.yellow("archived") : pc.green("active  ");
-  const title = truncate(t.title, 70);
+  const title = truncate(t.title, 50);
   const cwd = pc.dim(truncate(shortenCwd(t.cwd), 40));
   return `${pc.dim(age)}  ${tag}  ${title}  ${cwd}`;
 }

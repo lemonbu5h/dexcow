@@ -23,7 +23,7 @@ export function shortenCwd(cwd: string): string {
   return cwd.startsWith(HOME) ? "~" + cwd.slice(HOME.length) : cwd;
 }
 
-export function formatThreadLine(t: Thread, titleWidth = 60): string {
+export function formatThreadLine(t: Thread, titleWidth = 40): string {
   const age = relativeTime(t.updatedAt).padStart(4);
   const tag = t.archived ? pc.yellow("[archived]") : pc.dim("[active]  ");
   const title = truncate(t.title, titleWidth).padEnd(titleWidth);

@@ -2,8 +2,7 @@
 import pc from "picocolors";
 import { paths } from "./paths.ts";
 import { runInteractive, runList, runRemove } from "./commands.ts";
-
-const VERSION = "0.1.0";
+import { VERSION } from "./version.ts";
 
 const HELP = `${pc.bold("dexcow")} — a cow that eats your Codex sessions
 
@@ -38,13 +37,14 @@ async function main(argv: string[]): Promise<void> {
   const [command, ...rest] = positional;
 
   try {
+    // Commands stay thin here; state access and destructive operations live in focused modules.
     switch (command) {
       case undefined:
         await runInteractive({ hard });
         return;
       case "ls":
       case "list":
-        runList();
+        await runList();
         return;
       case "rm":
       case "delete":
