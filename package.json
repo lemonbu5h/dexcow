@@ -14,6 +14,7 @@
     "dev": "bun run src/index.ts",
     "build": "bun build src/index.ts --target=bun --outfile=dist/dexcow.js --minify",
     "compile": "bun build src/index.ts --compile --outfile=dist/dexcow",
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

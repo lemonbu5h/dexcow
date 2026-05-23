@@ -14,7 +14,7 @@ ${pc.bold("Usage:")}
   dexcow -v, --version
 
 ${pc.bold("Flags:")}
-  --hard              Permanently delete (skip trash at ${pc.dim("~/.codex/.dexcow-trash")})
+  --hard              Delete rollout files instead of moving them to ${pc.dim("~/.codex/.dexcow-trash")}
 
 ${pc.bold("Data source:")}
   ${pc.dim(paths.stateDb)}

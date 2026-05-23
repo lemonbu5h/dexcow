@@ -1,8 +1,8 @@
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import { paths } from "./paths.ts";
-import { deleteThreadRow, listThreads, openDb, type Thread } from "./threads.ts";
-import { hardDelete, moveToTrash } from "./trash.ts";
+import { purgeThreads, type PurgeResult } from "./purge.ts";
+import { listThreads, openDb, type Thread } from "./threads.ts";
 import { formatThreadLine, relativeTime, shortenCwd, truncate } from "./format.ts";
 
 export interface DeleteOptions {
@@ -47,7 +47,7 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
       return;
     }
 
-    const result = await deleteMany(db, chosen, opts);
+    const result = await purgeThreads(db, chosen, opts);
     p.outro(summarize(result, opts));
   } finally {
     db.close();
@@ -86,41 +86,23 @@ export async function runRemove(ids: string[], opts: DeleteOptions): Promise<voi
       }
       chosen.push(t);
     }
-    const result = await deleteMany(db, chosen, opts);
+    const result = await purgeThreads(db, chosen, opts);
     console.log(summarize(result, opts));
   } finally {
     db.close();
   }
 }
 
-interface DeleteResult {
-  removed: number;
-  missingFiles: number;
-}
-
-async function deleteMany(
-  db: ReturnType<typeof openDb>,
-  threads: Thread[],
-  opts: DeleteOptions,
-): Promise<DeleteResult> {
-  let removed = 0;
-  let missingFiles = 0;
-  for (const t of threads) {
-    // Move/delete the rollout first so a filesystem failure does not orphan the database row.
-    const movedOrGone = opts.hard
-      ? await hardDelete(t.rolloutPath)
-      : (await moveToTrash(t.rolloutPath)) !== null;
-    if (!movedOrGone) missingFiles++;
-    deleteThreadRow(db, t.id);
-    removed++;
-  }
-  return { removed, missingFiles };
-}
-
-function summarize(r: DeleteResult, opts: DeleteOptions): string {
+function summarize(r: PurgeResult, opts: DeleteOptions): string {
   const verb = opts.hard ? "purged" : "trashed";
   const main = `${verb} ${r.removed} session(s)`;
-  const note = r.missingFiles > 0 ? pc.dim(` (${r.missingFiles} rollout file(s) already missing)`) : "";
+  const details = [
+    `${r.stateRows} state row(s)`,
+    `${r.logRows} log row(s)`,
+    `${r.sessionIndexRows} index row(s)`,
+  ];
+  if (r.missingFiles > 0) details.push(`${r.missingFiles} rollout file(s) already missing`);
+  const note = pc.dim(` (${details.join(", ")})`);
   return main + note;
 }
 
