@@ -26,8 +26,6 @@ const SELECT_ALL = `
   ORDER BY updated_at DESC, id DESC
 `;
 
-const DELETE_THREAD = `DELETE FROM threads WHERE id = ?`;
-
 export function openDb(): Database {
   return new Database(paths.stateDb, { create: false, readwrite: true });
 }
@@ -36,10 +34,6 @@ export async function listThreads(db: Database): Promise<Thread[]> {
   // The database owns deletion state; session_index.jsonl only improves the title shown to users.
   const names = await loadThreadNames();
   return db.query(SELECT_ALL).all().map((r) => toThread(r, names));
-}
-
-export function deleteThreadRow(db: Database, id: string): void {
-  db.query(DELETE_THREAD).run(id);
 }
 
 function toThread(raw: unknown, names: ThreadNameMap): Thread {

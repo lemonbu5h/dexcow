@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { paths } from "./paths.ts";
 
 interface IndexEntry {
@@ -28,6 +28,27 @@ export async function loadThreadNames(): Promise<ThreadNameMap> {
   const names: ThreadNameMap = new Map();
   for (const [id, entry] of latest) names.set(id, entry.thread_name);
   return names;
+}
+
+export async function removeThreadNames(ids: Set<string>, indexPath = paths.sessionIndex): Promise<number> {
+  const raw = await safeRead(indexPath);
+  if (raw === null) return 0;
+
+  const kept: string[] = [];
+  let removed = 0;
+  for (const line of raw.split("\n")) {
+    if (line.length === 0) continue;
+    const entry = parseEntry(line);
+    if (entry !== null && ids.has(entry.id)) {
+      removed++;
+      continue;
+    }
+    kept.push(line);
+  }
+
+  const next = kept.length === 0 ? "" : kept.join("\n") + "\n";
+  await writeFile(indexPath, next, "utf8");
+  return removed;
 }
 
 function parseEntry(line: string): IndexEntry | null {

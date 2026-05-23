@@ -2,12 +2,17 @@ import { mkdir, rename, unlink, stat } from "node:fs/promises";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { paths } from "./paths.ts";
 
-export async function moveToTrash(rolloutPath: string): Promise<string | null> {
-  assertSessionRolloutPath(rolloutPath);
+export interface TrashOptions {
+  sessionsRoot?: string;
+  trashRoot?: string;
+}
+
+export async function moveToTrash(rolloutPath: string, opts: TrashOptions = {}): Promise<string | null> {
+  assertSessionRolloutPath(rolloutPath, opts.sessionsRoot ?? paths.sessions);
   if (!(await exists(rolloutPath))) return null;
 
   const stamp = new Date().toISOString().slice(0, 10);
-  const bucket = join(paths.trash, stamp);
+  const bucket = join(opts.trashRoot ?? paths.trash, stamp);
   await mkdir(bucket, { recursive: true });
 
   const dest = join(bucket, basename(rolloutPath));
@@ -15,16 +20,16 @@ export async function moveToTrash(rolloutPath: string): Promise<string | null> {
   return dest;
 }
 
-export async function hardDelete(rolloutPath: string): Promise<boolean> {
-  assertSessionRolloutPath(rolloutPath);
+export async function hardDelete(rolloutPath: string, opts: TrashOptions = {}): Promise<boolean> {
+  assertSessionRolloutPath(rolloutPath, opts.sessionsRoot ?? paths.sessions);
   if (!(await exists(rolloutPath))) return false;
   await unlink(rolloutPath);
   return true;
 }
 
-function assertSessionRolloutPath(rolloutPath: string): void {
+function assertSessionRolloutPath(rolloutPath: string, sessionsRootPath: string): void {
   // Rollout paths come from Codex state; constrain destructive operations to the session tree.
-  const sessionsRoot = resolve(paths.sessions);
+  const sessionsRoot = resolve(sessionsRootPath);
   const candidate = resolve(rolloutPath);
   const pathFromRoot = relative(sessionsRoot, candidate);
   const isInsideSessions = pathFromRoot !== "" && !pathFromRoot.startsWith("..") && !isAbsolute(pathFromRoot);
