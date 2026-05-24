@@ -6,12 +6,57 @@ Codex doesn't let you delete sessions from its GUI. `dexcow` is a tiny terminal 
 
 ## Install
 
+### Option 1: standalone binary
+
+Use a standalone binary from GitHub Releases when available. This is the easiest path because it does not require Bun at runtime.
+
+macOS Apple Silicon:
+
+```bash
+curl -L https://github.com/lemonbu5h/dexcow/releases/latest/download/dexcow-macos-arm64 -o dexcow
+chmod +x dexcow
+./dexcow --version
+```
+
+Linux x64:
+
+```bash
+curl -L https://github.com/lemonbu5h/dexcow/releases/latest/download/dexcow-linux-x64 -o dexcow
+chmod +x dexcow
+./dexcow --version
+```
+
+Move the binary somewhere on your `PATH` if you want to run `dexcow` from any directory.
+
+### Option 2: Bun global install
+
+Use this if you already have Bun installed:
+
 ```bash
 bun install -g dexcow
-# or, from source:
+```
+
+If `bun` is not installed, install it first from the official Bun docs:
+
+```bash
+curl -fsSL https://bun.com/install | bash
+bun --version
+```
+
+### Option 3: from source
+
+Use this for local development or testing unreleased changes:
+
+```bash
 git clone git@github.com:lemonbu5h/dexcow.git && cd dexcow
 bun install && bun link
 ```
+
+## Requirements
+
+- Codex must be installed and have local session state.
+- Bun `>=1.1.0` is required for source installs and `bun install -g`.
+- Standalone binaries do not require Bun at runtime.
 
 ## Use
 
@@ -118,6 +163,14 @@ bun run build               # bundle to dist/dexcow.js
 bun run compile             # standalone binary dist/dexcow
 ```
 
+## Release checklist
+
+1. Update `package.json` version.
+2. Run `bun run typecheck`, `bun test`, and `bun run build`.
+3. Run `bun run compile` for the local platform.
+4. Attach compiled binaries to a GitHub Release.
+5. Verify the release binary with `dexcow --version`.
+
 ## License
 
-MIT
+MIT. See [LICENSE](./LICENSE).
