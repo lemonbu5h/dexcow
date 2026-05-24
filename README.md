@@ -70,6 +70,8 @@ dexcow --hard       # skip trash, purge immediately
 
 Deleted sessions are purged from Codex's local indexes and logs. Rollout files move to `~/.codex/.dexcow-trash/<date>/` by default; use `--hard` to delete those rollout files immediately.
 
+The interactive picker shows repository names instead of full working-directory paths. Press space to select sessions, then enter to review the selected sessions and confirm.
+
 ## Flow
 
 ### Command map
