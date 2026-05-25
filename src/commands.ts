@@ -3,6 +3,7 @@ import pc from "picocolors";
 import { paths } from "./paths.ts";
 import { purgeThreads, type PurgeResult } from "./purge.ts";
 import { listThreads, openDb, type Thread } from "./threads.ts";
+import { emptyTrash, inspectTrash, type TrashSummary } from "./trash.ts";
 import { formatThreadLine, projectName, relativeTime, shortenCwd, truncate } from "./format.ts";
 
 export interface DeleteOptions {
@@ -51,7 +52,7 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
     }
 
     const result = await purgeThreads(db, chosen, opts);
-    p.outro(summarize(result, opts) + trashLocation(result, opts));
+    p.outro(summarize(result, opts) + trashLocation(result, opts) + restartNote());
   } finally {
     db.close();
   }
@@ -90,10 +91,42 @@ export async function runRemove(ids: string[], opts: DeleteOptions): Promise<voi
       chosen.push(t);
     }
     const result = await purgeThreads(db, chosen, opts);
-    console.log(summarize(result, opts) + trashLocation(result, opts));
+    console.log(summarize(result, opts) + trashLocation(result, opts) + restartNote());
   } finally {
     db.close();
   }
+}
+
+export async function runTrash(args: string[]): Promise<void> {
+  const empty = args.includes("--empty");
+  const yes = args.includes("--yes") || args.includes("-y");
+
+  if (!empty) {
+    console.log(formatTrashSummary(await inspectTrash()));
+    return;
+  }
+
+  const summary = await inspectTrash();
+  if (summary.files === 0) {
+    console.log(formatTrashSummary(summary));
+    return;
+  }
+
+  if (!yes) {
+    const confirmed = await p.confirm({
+      message: `permanently delete ${pc.bold(String(summary.files))} trashed rollout file(s), ${formatBytes(summary.bytes)}?`,
+      active: "Yes, empty trash",
+      inactive: "No, keep",
+      initialValue: false,
+    });
+    if (!confirmed || p.isCancel(confirmed)) {
+      p.cancel("kept trash; no files deleted");
+      return;
+    }
+  }
+
+  const deleted = await emptyTrash();
+  console.log(`emptied trash (${deleted.files} file(s), ${formatBytes(deleted.bytes)})`);
 }
 
 function summarize(r: PurgeResult, opts: DeleteOptions): string {
@@ -114,6 +147,10 @@ function trashLocation(r: PurgeResult, opts: DeleteOptions): string {
   return pc.dim(`\ntrash: ${shortenCwd(paths.trash)}`);
 }
 
+function restartNote(): string {
+  return pc.dim("\nrestart Codex if old sessions still appear in the GUI");
+}
+
 function renderOptionLabel(t: Thread): string {
   const age = relativeTime(t.updatedAt).padStart(4);
   const tag = t.archived ? pc.yellow("archived") : pc.green("active  ");
@@ -124,4 +161,30 @@ function renderOptionLabel(t: Thread): string {
 
 function renderChosenLine(t: Thread): string {
   return `${projectName(t.cwd)} - ${truncate(t.title, 72)}`;
+}
+
+function formatTrashSummary(summary: TrashSummary): string {
+  if (summary.files === 0) return `trash empty (${shortenCwd(summary.root)})`;
+
+  const lines = [
+    `trash: ${shortenCwd(summary.root)}`,
+    `total: ${summary.files} file(s), ${formatBytes(summary.bytes)}`,
+  ];
+  for (const bucket of summary.buckets) {
+    lines.push(`${bucket.name}  ${String(bucket.files).padStart(4)} file(s)  ${formatBytes(bucket.bytes)}`);
+  }
+  return lines.join("\n");
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let value = bytes / 1024;
+  let unit = units[0];
+  for (const next of units.slice(1)) {
+    if (value < 1024) break;
+    value /= 1024;
+    unit = next;
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${unit}`;
 }

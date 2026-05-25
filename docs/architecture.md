@@ -9,7 +9,8 @@ flowchart LR
   A["dexcow"] --> B["interactive"]
   A --> C["ls"]
   A --> D["rm <id...>"]
-  A --> E["--version"]
+  A --> E["trash"]
+  A --> F["--version"]
 ```
 
 ### Interactive delete
@@ -62,3 +63,16 @@ flowchart LR
 - rollout files under `~/.codex/sessions/`
 
 It leaves `auth.json`, `config.toml`, memories, and skills alone.
+
+## Trash
+
+Related files: `src/index.ts`, `src/commands.ts`, `src/trash.ts`.
+
+```mermaid
+flowchart LR
+  A["trash"] --> B["Inspect .dexcow-trash"]
+  B --> C["Print buckets"]
+  A2["trash --empty"] --> B2["Inspect .dexcow-trash"]
+  B2 --> C2["Confirm"]
+  C2 --> D2["Delete .dexcow-trash"]
+```

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import pc from "picocolors";
 import { paths } from "./paths.ts";
-import { runInteractive, runList, runRemove } from "./commands.ts";
+import { runInteractive, runList, runRemove, runTrash } from "./commands.ts";
 import { VERSION } from "./version.ts";
 
 const HELP = `${pc.bold("dexcow")} — a cow that eats your Codex sessions
@@ -10,11 +10,14 @@ ${pc.bold("Usage:")}
   dexcow              Interactive picker (multiselect + delete)
   dexcow ls           List all sessions
   dexcow rm <id...>   Delete specific sessions by id
+  dexcow trash        List trashed rollout files
+  dexcow trash --empty Empty dexcow trash after confirmation
   dexcow -h, --help   Show this help
   dexcow -v, --version
 
 ${pc.bold("Flags:")}
   --hard              Delete rollout files instead of moving them to ${pc.dim("~/.codex/.dexcow-trash")}
+  --yes, -y           With trash --empty: skip confirmation
 
 ${pc.bold("Data source:")}
   ${pc.dim(paths.stateDb)}
@@ -49,6 +52,9 @@ async function main(argv: string[]): Promise<void> {
       case "rm":
       case "delete":
         await runRemove(rest, { hard });
+        return;
+      case "trash":
+        await runTrash(rest);
         return;
       default:
         console.error(pc.red(`unknown command: ${command}`));
