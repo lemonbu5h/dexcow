@@ -35,6 +35,7 @@ bun link
 
 ```bash
 dexcow              # interactive picker
+dexcow help         # list commands
 dexcow ls           # list sessions
 dexcow rm <id>...   # remove by id
 dexcow trash        # list trashed rollout files
