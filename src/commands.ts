@@ -23,7 +23,7 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
     }
 
     const picked = await p.multiselect<string>({
-      message: `Pick sessions to ${opts.hard ? pc.red("PURGE") : "trash"} (space toggles, enter continues)`,
+      message: `Pick sessions to ${opts.hard ? pc.red("PURGE") : "trash"} (space toggles, enter continues, q exits)`,
       options: threads.map((t) => ({
         value: t.id,
         label: renderOptionLabel(t),
@@ -32,7 +32,7 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
     });
 
     if (p.isCancel(picked)) {
-      p.cancel("selection canceled");
+      exitCleanly("exited; no changes made");
       return;
     }
 
@@ -47,7 +47,7 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
       initialValue: false,
     });
     if (!confirmed || p.isCancel(confirmed)) {
-      p.cancel("kept selected session(s); no changes made");
+      exitCleanly("kept selected session(s); no changes made");
       return;
     }
 
@@ -120,7 +120,7 @@ export async function runTrash(args: string[]): Promise<void> {
       initialValue: false,
     });
     if (!confirmed || p.isCancel(confirmed)) {
-      p.cancel("kept trash; no files deleted");
+      exitCleanly("kept trash; no files deleted");
       return;
     }
   }
@@ -149,6 +149,10 @@ function trashLocation(r: PurgeResult, opts: DeleteOptions): string {
 
 function restartNote(): string {
   return pc.dim("\nrestart Codex if old sessions still appear in the GUI");
+}
+
+function exitCleanly(message: string): void {
+  p.outro(pc.dim(message));
 }
 
 function renderOptionLabel(t: Thread): string {

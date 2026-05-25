@@ -1,49 +1,38 @@
 #!/usr/bin/env bun
+import { updateSettings } from "@clack/prompts";
 import pc from "picocolors";
 import { paths } from "./paths.ts";
+import { parseArgs } from "./args.ts";
 import { runInteractive, runList, runRemove, runTrash } from "./commands.ts";
+import { helpFor } from "./help.ts";
 import { VERSION } from "./version.ts";
 
-const HELP = `${pc.bold("dexcow")} — a cow that eats your Codex sessions
-
-${pc.bold("Usage:")}
-  dexcow              Interactive picker (multiselect + delete)
-  dexcow ls           List all sessions
-  dexcow rm <id...>   Delete specific sessions by id
-  dexcow trash        List trashed rollout files
-  dexcow trash --empty Empty dexcow trash after confirmation
-  dexcow -h, --help   Show this help
-  dexcow -v, --version
-
-${pc.bold("Flags:")}
-  --hard              Delete rollout files instead of moving them to ${pc.dim("~/.codex/.dexcow-trash")}
-  --yes, -y           With trash --empty: skip confirmation
-
-${pc.bold("Data source:")}
-  ${pc.dim(paths.stateDb)}
-`;
+updateSettings({
+  aliases: {
+    q: "cancel",
+  },
+});
 
 async function main(argv: string[]): Promise<void> {
-  const args = argv.slice(2);
+  const parsed = parseArgs(argv.slice(2));
 
-  if (args.includes("-h") || args.includes("--help")) {
-    console.log(HELP);
+  if (parsed.help) {
+    console.log(helpFor(parsed.command));
     return;
   }
-  if (args.includes("-v") || args.includes("--version")) {
+  if (parsed.version) {
     console.log(VERSION);
     return;
   }
 
-  const hard = args.includes("--hard");
-  const positional = args.filter((a) => !a.startsWith("-"));
-  const [command, ...rest] = positional;
-
   try {
     // Commands stay thin here; state access and destructive operations live in focused modules.
-    switch (command) {
+    switch (parsed.command) {
       case undefined:
-        await runInteractive({ hard });
+        await runInteractive({ hard: parsed.hard });
+        return;
+      case "help":
+        console.log(helpFor(parsed.commandPositionals[0]));
         return;
       case "ls":
       case "list":
@@ -51,14 +40,14 @@ async function main(argv: string[]): Promise<void> {
         return;
       case "rm":
       case "delete":
-        await runRemove(rest, { hard });
+        await runRemove(parsed.commandPositionals, { hard: parsed.hard });
         return;
       case "trash":
-        await runTrash(rest);
+        await runTrash(parsed.commandArgs);
         return;
       default:
-        console.error(pc.red(`unknown command: ${command}`));
-        console.error(HELP);
+        console.error(pc.red(`unknown command: ${parsed.command}`));
+        console.error(helpFor());
         process.exit(2);
     }
   } catch (err) {
