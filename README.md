@@ -37,6 +37,8 @@ bun link
 dexcow              # interactive picker
 dexcow ls           # list sessions
 dexcow rm <id>...   # remove by id
+dexcow trash        # list trashed rollout files
+dexcow trash --empty # empty trash after confirmation
 dexcow --hard       # delete rollout files instead of moving them to trash
 dexcow --version
 ```
@@ -44,6 +46,8 @@ dexcow --version
 By default, rollout files move to `~/.codex/.dexcow-trash/<date>/`. `--hard` skips that trash step.
 
 The interactive picker shows repository names instead of full working-directory paths. Press space to select sessions, then enter to review the selected sessions and confirm.
+
+After deleting sessions, restart Codex if the GUI still shows old sessions. Codex may cache session state while it is running.
 
 ## Safety
 
