@@ -1,5 +1,9 @@
 # dexcow
 
+[![CI](https://github.com/lemonbu5h/dexcow/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonbu5h/dexcow/actions/workflows/ci.yml)
+[![Release](https://github.com/lemonbu5h/dexcow/actions/workflows/release.yml/badge.svg)](https://github.com/lemonbu5h/dexcow/actions/workflows/release.yml)
+[![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-black?logo=bun)](https://bun.sh)
+
 A tiny CLI for cleaning up local Codex sessions.
 
 Codex does not currently expose session deletion in the GUI. `dexcow` reads Codex's local session index, lets you pick sessions by title/repo, and purges the selected local session state.
