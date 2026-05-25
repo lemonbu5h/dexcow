@@ -13,19 +13,20 @@
    ```
 
 3. Commit and merge the version bump.
-4. Tag the release from `main`:
+4. Check out the updated `main`. Do not tag the release branch before merge; the tag should point at the final commit users install.
+5. Tag the release from `main`:
 
    ```bash
    git tag -a v0.1.1 -m "release: v0.1.1"
    git push origin v0.1.1
    ```
 
-5. Confirm the GitHub Release has these assets:
+6. Confirm the GitHub Release has these assets:
 
    - `dexcow-macos-arm64`
    - `dexcow-linux-x64`
 
-6. Verify the install script:
+7. Verify the install script:
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/lemonbu5h/dexcow/main/install.sh | sh

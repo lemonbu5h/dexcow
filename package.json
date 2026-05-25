@@ -1,6 +1,6 @@
 {
   "name": "dexcow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A cow that eats your Codex sessions. Interactive cleanup for ~/.codex/sessions.",
   "type": "module",
   "bin": {
