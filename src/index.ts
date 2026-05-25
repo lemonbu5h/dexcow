@@ -1,10 +1,17 @@
 #!/usr/bin/env bun
+import { updateSettings } from "@clack/prompts";
 import pc from "picocolors";
 import { paths } from "./paths.ts";
 import { parseArgs } from "./args.ts";
 import { runInteractive, runList, runRemove, runTrash } from "./commands.ts";
 import { helpFor } from "./help.ts";
 import { VERSION } from "./version.ts";
+
+updateSettings({
+  aliases: {
+    q: "cancel",
+  },
+});
 
 async function main(argv: string[]): Promise<void> {
   const parsed = parseArgs(argv.slice(2));

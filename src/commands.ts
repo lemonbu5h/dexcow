@@ -23,7 +23,7 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
     }
 
     const picked = await p.multiselect<string>({
-      message: `Pick sessions to ${opts.hard ? pc.red("PURGE") : "trash"} (space toggles, enter continues)`,
+      message: `Pick sessions to ${opts.hard ? pc.red("PURGE") : "trash"} (space toggles, enter continues, q exits)`,
       options: threads.map((t) => ({
         value: t.id,
         label: renderOptionLabel(t),
