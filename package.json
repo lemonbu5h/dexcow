@@ -9,7 +9,9 @@
   "files": [
     "dist/dexcow.js",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "install.sh",
+    "docs"
   ],
   "scripts": {
     "dev": "bun run src/index.ts",
