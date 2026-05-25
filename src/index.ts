@@ -2,32 +2,14 @@
 import pc from "picocolors";
 import { paths } from "./paths.ts";
 import { runInteractive, runList, runRemove, runTrash } from "./commands.ts";
+import { helpFor } from "./help.ts";
 import { VERSION } from "./version.ts";
-
-const HELP = `${pc.bold("dexcow")} — a cow that eats your Codex sessions
-
-${pc.bold("Usage:")}
-  dexcow              Interactive picker (multiselect + delete)
-  dexcow ls           List all sessions
-  dexcow rm <id...>   Delete specific sessions by id
-  dexcow trash        List trashed rollout files
-  dexcow trash --empty Empty dexcow trash after confirmation
-  dexcow -h, --help   Show this help
-  dexcow -v, --version
-
-${pc.bold("Flags:")}
-  --hard              Delete rollout files instead of moving them to ${pc.dim("~/.codex/.dexcow-trash")}
-  --yes, -y           With trash --empty: skip confirmation
-
-${pc.bold("Data source:")}
-  ${pc.dim(paths.stateDb)}
-`;
 
 async function main(argv: string[]): Promise<void> {
   const args = argv.slice(2);
 
   if (args.includes("-h") || args.includes("--help")) {
-    console.log(HELP);
+    console.log(helpFor(firstCommand(args)));
     return;
   }
   if (args.includes("-v") || args.includes("--version")) {
@@ -45,6 +27,9 @@ async function main(argv: string[]): Promise<void> {
       case undefined:
         await runInteractive({ hard });
         return;
+      case "help":
+        console.log(helpFor(rest[0]));
+        return;
       case "ls":
       case "list":
         await runList();
@@ -58,7 +43,7 @@ async function main(argv: string[]): Promise<void> {
         return;
       default:
         console.error(pc.red(`unknown command: ${command}`));
-        console.error(HELP);
+        console.error(helpFor());
         process.exit(2);
     }
   } catch (err) {
@@ -74,6 +59,10 @@ async function main(argv: string[]): Promise<void> {
 function isMissingDb(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return msg.includes("unable to open") || msg.includes("ENOENT");
+}
+
+function firstCommand(args: string[]): string | undefined {
+  return args.find((arg) => !arg.startsWith("-"));
 }
 
 await main(process.argv);
