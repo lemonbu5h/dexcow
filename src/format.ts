@@ -1,4 +1,5 @@
 import { homedir } from "node:os";
+import { basename } from "node:path";
 import pc from "picocolors";
 import type { Thread } from "./threads.ts";
 
@@ -23,10 +24,15 @@ export function shortenCwd(cwd: string): string {
   return cwd.startsWith(HOME) ? "~" + cwd.slice(HOME.length) : cwd;
 }
 
+export function projectName(cwd: string): string {
+  const name = basename(cwd);
+  return name.length === 0 ? shortenCwd(cwd) : name;
+}
+
 export function formatThreadLine(t: Thread, titleWidth = 40): string {
   const age = relativeTime(t.updatedAt).padStart(4);
   const tag = t.archived ? pc.yellow("[archived]") : pc.dim("[active]  ");
+  const project = truncate(projectName(t.cwd), 24).padEnd(24);
   const title = truncate(t.title, titleWidth).padEnd(titleWidth);
-  const cwd = pc.dim(truncate(shortenCwd(t.cwd), 40));
-  return `${pc.dim(age)}  ${tag}  ${title}  ${cwd}`;
+  return `${pc.dim(age)}  ${tag}  ${pc.cyan(project)}  ${title}`;
 }
