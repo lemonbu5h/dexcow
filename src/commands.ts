@@ -4,7 +4,15 @@ import { paths } from "./paths.ts";
 import { purgeThreads, type PurgeResult } from "./purge.ts";
 import { listThreads, openDb, type Thread } from "./threads.ts";
 import { emptyTrash, inspectTrash, type TrashSummary } from "./trash.ts";
-import { formatThreadLine, projectName, relativeTime, shortenCwd, truncate } from "./format.ts";
+import {
+  formatGroupedThreadLine,
+  formatThreadGroupHeader,
+  formatThreadGroups,
+  groupThreadsByProject,
+  projectName,
+  shortenCwd,
+  truncate,
+} from "./format.ts";
 
 export interface DeleteOptions {
   hard: boolean;
@@ -22,13 +30,11 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
       return;
     }
 
-    const picked = await p.multiselect<string>({
+    const picked = await p.groupMultiselect<string>({
       message: `Pick sessions to ${opts.hard ? pc.red("PURGE") : "trash"} (space toggles, enter continues, q exits)`,
-      options: threads.map((t) => ({
-        value: t.id,
-        label: renderOptionLabel(t),
-      })),
+      options: renderGroupedOptions(threads),
       required: true,
+      selectableGroups: false,
     });
 
     if (p.isCancel(picked)) {
@@ -66,7 +72,7 @@ export async function runList(): Promise<void> {
       console.log("(no sessions)");
       return;
     }
-    for (const t of threads) console.log(formatThreadLine(t));
+    console.log(formatThreadGroups(threads));
   } finally {
     db.close();
   }
@@ -155,12 +161,17 @@ function exitCleanly(message: string): void {
   p.outro(pc.dim(message));
 }
 
-function renderOptionLabel(t: Thread): string {
-  const age = relativeTime(t.updatedAt).padStart(4);
-  const tag = t.archived ? pc.yellow("archived") : pc.green("active  ");
-  const project = pc.cyan(truncate(projectName(t.cwd), 24).padEnd(24));
-  const title = truncate(t.title, 52);
-  return `${pc.dim(age)}  ${tag}  ${project}  ${title}`;
+function renderGroupedOptions(threads: Thread[]): Record<string, { value: string; label: string }[]> {
+  const groups = groupThreadsByProject(threads);
+  return Object.fromEntries(
+    groups.map((group) => [
+      formatThreadGroupHeader(group, groups),
+      group.threads.map((thread) => ({
+        value: thread.id,
+        label: formatGroupedThreadLine(thread, 52).trimStart(),
+      })),
+    ]),
+  );
 }
 
 function renderChosenLine(t: Thread): string {
