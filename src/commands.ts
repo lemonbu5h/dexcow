@@ -5,11 +5,11 @@ import { purgeThreads, type PurgeResult } from "./purge.ts";
 import { listThreads, openDb, type Thread } from "./threads.ts";
 import { emptyTrash, inspectTrash, type TrashSummary } from "./trash.ts";
 import {
-  formatGroupedThreadLine,
-  formatThreadGroupHeader,
   formatThreadGroups,
   groupThreadsByProject,
+  type ThreadGroup,
   projectName,
+  relativeTime,
   shortenCwd,
   truncate,
 } from "./format.ts";
@@ -30,11 +30,20 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
       return;
     }
 
-    const picked = await p.groupMultiselect<string>({
+    const target = await pickInteractiveGroup(threads);
+    if (p.isCancel(target)) {
+      exitCleanly("exited; no changes made");
+      return;
+    }
+
+    const picked = await p.multiselect<string>({
       message: `Pick sessions to ${opts.hard ? pc.red("PURGE") : "trash"} (space toggles, enter continues, q exits)`,
-      options: renderGroupedOptions(threads),
+      options: target.threads.map((thread) => ({
+        value: thread.id,
+        label: renderSessionOptionLabel(thread),
+      })),
+      maxItems: 12,
       required: true,
-      selectableGroups: false,
     });
 
     if (p.isCancel(picked)) {
@@ -161,17 +170,35 @@ function exitCleanly(message: string): void {
   p.outro(pc.dim(message));
 }
 
-function renderGroupedOptions(threads: Thread[]): Record<string, { value: string; label: string }[]> {
+async function pickInteractiveGroup(threads: Thread[]): Promise<ThreadGroup | symbol> {
   const groups = groupThreadsByProject(threads);
-  return Object.fromEntries(
-    groups.map((group) => [
-      formatThreadGroupHeader(group, groups),
-      group.threads.map((thread) => ({
-        value: thread.id,
-        label: formatGroupedThreadLine(thread, 48).trimStart(),
-      })),
-    ]),
-  );
+  if (groups.length === 1) return groups[0]!;
+
+  const chosen = await p.select<string>({
+    message: "Pick a repo",
+    options: groups.map((group) => ({
+      value: group.cwd,
+      label: renderRepoOptionLabel(group),
+    })),
+    maxItems: 12,
+  });
+
+  if (p.isCancel(chosen)) return chosen;
+  return groups.find((group) => group.cwd === chosen) ?? groups[0]!;
+}
+
+function renderRepoOptionLabel(group: ThreadGroup): string {
+  const name = truncate(group.project, 28).padEnd(28);
+  const count = `${group.threads.length} session${group.threads.length === 1 ? "" : "s"}`;
+  const latest = relativeTime(group.threads[0]?.updatedAt ?? new Date()).padStart(4);
+  return `${name}  ${count.padEnd(10)}  latest ${latest}`;
+}
+
+function renderSessionOptionLabel(t: Thread): string {
+  const age = relativeTime(t.updatedAt).padStart(4);
+  const title = truncate(t.title, 54).padEnd(54);
+  const tag = t.archived ? pc.yellow("archived") : pc.green("active  ");
+  return `${pc.dim(age)}  ${title}  ${tag}`;
 }
 
 function renderChosenLine(t: Thread): string {
