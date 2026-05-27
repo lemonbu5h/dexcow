@@ -5,11 +5,9 @@ import { purgeThreads, type PurgeResult } from "./purge.ts";
 import { listThreads, openDb, type Thread } from "./threads.ts";
 import { emptyTrash, inspectTrash, type TrashSummary } from "./trash.ts";
 import {
-  formatGroupedThreadLine,
-  formatThreadGroupHeader,
   formatThreadGroups,
-  groupThreadsByProject,
   projectName,
+  relativeTime,
   shortenCwd,
   truncate,
 } from "./format.ts";
@@ -30,11 +28,13 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
       return;
     }
 
-    const picked = await p.groupMultiselect<string>({
+    const picked = await p.multiselect<string>({
       message: `Pick sessions to ${opts.hard ? pc.red("PURGE") : "trash"} (space toggles, enter continues, q exits)`,
-      options: renderGroupedOptions(threads),
+      options: threads.map((thread) => ({
+        value: thread.id,
+        label: renderOptionLabel(thread),
+      })),
       required: true,
-      selectableGroups: false,
     });
 
     if (p.isCancel(picked)) {
@@ -161,17 +161,12 @@ function exitCleanly(message: string): void {
   p.outro(pc.dim(message));
 }
 
-function renderGroupedOptions(threads: Thread[]): Record<string, { value: string; label: string }[]> {
-  const groups = groupThreadsByProject(threads);
-  return Object.fromEntries(
-    groups.map((group) => [
-      formatThreadGroupHeader(group, groups),
-      group.threads.map((thread) => ({
-        value: thread.id,
-        label: formatGroupedThreadLine(thread, 52).trimStart(),
-      })),
-    ]),
-  );
+function renderOptionLabel(t: Thread): string {
+  const age = relativeTime(t.updatedAt).padStart(4);
+  const project = pc.cyan(truncate(projectName(t.cwd), 20).padEnd(20));
+  const title = truncate(t.title, 48).padEnd(48);
+  const tag = t.archived ? pc.yellow("archived") : pc.green("active  ");
+  return `${pc.dim(age)}  ${project}  ${title}  ${tag}`;
 }
 
 function renderChosenLine(t: Thread): string {

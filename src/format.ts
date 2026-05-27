@@ -67,7 +67,7 @@ export function formatThreadGroups(threads: Thread[]): string {
   const groups = groupThreadsByProject(threads);
   const blocks = groups.map((group) => {
     const header = formatThreadGroupHeader(group, groups);
-    const rows = group.threads.map(formatGroupedThreadLine);
+    const rows = group.threads.map((thread) => formatGroupedThreadLine(thread));
     return [header, ...rows].join("\n");
   });
   return [total, ...blocks].join("\n\n");
@@ -82,8 +82,8 @@ export function formatThreadGroupHeader(group: ThreadGroup, allGroups: ThreadGro
 export function formatGroupedThreadLine(t: Thread, titleWidth = 56): string {
   const age = relativeTime(t.updatedAt).padStart(4);
   const tag = t.archived ? pc.yellow("archived") : pc.green("active  ");
-  const title = truncate(t.title, titleWidth);
-  return `  ${pc.dim(age)}  ${tag}  ${title}`;
+  const title = truncate(t.title, titleWidth).padEnd(titleWidth);
+  return `  ${pc.dim(age)}  ${title}  ${tag}`;
 }
 
 function compareThreadsByRecent(a: Thread | undefined, b: Thread | undefined): number {

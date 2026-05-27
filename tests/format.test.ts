@@ -43,6 +43,19 @@ test("formatThreadGroups starts with a neutral total and repo blocks", () => {
   expect(output).not.toContain("/Users/queen/Projects/dexcow");
 });
 
+test("formatThreadGroups displays full titles with status after the title", () => {
+  const output = formatThreadGroups([
+    thread("/Users/queen/Projects/dexcow", {
+      title: "Check repo policy compliance",
+      updatedAt: minutesAgo(5),
+    }),
+  ]);
+
+  expect(output).toContain("Check repo policy compliance");
+  expect(output).not.toContain("  …");
+  expect(output.indexOf("Check repo policy compliance")).toBeLessThan(output.indexOf("active"));
+});
+
 test("formatThreadGroupHeader disambiguates duplicate repo names", () => {
   const groups = groupThreadsByProject([
     thread("/Users/queen/Projects/work/app", { id: "work" }),
