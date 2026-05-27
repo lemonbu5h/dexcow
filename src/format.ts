@@ -1,9 +1,15 @@
 import { homedir } from "node:os";
-import { basename } from "node:path";
+import { basename, dirname } from "node:path";
 import pc from "picocolors";
 import type { Thread } from "./threads.ts";
 
 const HOME = homedir();
+
+export interface ThreadGroup {
+  cwd: string;
+  project: string;
+  threads: Thread[];
+}
 
 export function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
@@ -35,4 +41,63 @@ export function formatThreadLine(t: Thread, titleWidth = 40): string {
   const project = truncate(projectName(t.cwd), 24).padEnd(24);
   const title = truncate(t.title, titleWidth).padEnd(titleWidth);
   return `${pc.dim(age)}  ${tag}  ${pc.cyan(project)}  ${title}`;
+}
+
+export function groupThreadsByProject(threads: Thread[]): ThreadGroup[] {
+  const groups = new Map<string, ThreadGroup>();
+  for (const thread of threads) {
+    const group = groups.get(thread.cwd);
+    if (group) {
+      group.threads.push(thread);
+      continue;
+    }
+    groups.set(thread.cwd, { cwd: thread.cwd, project: projectName(thread.cwd), threads: [thread] });
+  }
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      threads: [...group.threads].sort(compareThreadsByRecent),
+    }))
+    .sort((a, b) => compareThreadsByRecent(a.threads[0], b.threads[0]));
+}
+
+export function formatThreadGroups(threads: Thread[]): string {
+  const total = `Total ${threads.length} ${plural(threads.length, "session")}`;
+  const groups = groupThreadsByProject(threads);
+  const blocks = groups.map((group) => {
+    const header = formatThreadGroupHeader(group, groups);
+    const rows = group.threads.map((thread) => formatGroupedThreadLine(thread));
+    return [header, ...rows].join("\n");
+  });
+  return [total, ...blocks].join("\n\n");
+}
+
+export function formatThreadGroupHeader(group: ThreadGroup, allGroups: ThreadGroup[]): string {
+  const name = groupLabel(group, allGroups);
+  const count = `${group.threads.length} ${plural(group.threads.length, "session")}`;
+  return `${pc.cyan(name)}  ${pc.dim(count)}`;
+}
+
+export function formatGroupedThreadLine(t: Thread, titleWidth = 56): string {
+  const age = relativeTime(t.updatedAt).padStart(4);
+  const tag = t.archived ? pc.yellow("archived") : pc.green("active  ");
+  const title = truncate(t.title, titleWidth).padEnd(titleWidth);
+  return `  ${pc.dim(age)}  ${title}  ${tag}`;
+}
+
+function compareThreadsByRecent(a: Thread | undefined, b: Thread | undefined): number {
+  if (!a || !b) return 0;
+  const byDate = b.updatedAt.getTime() - a.updatedAt.getTime();
+  return byDate === 0 ? b.id.localeCompare(a.id) : byDate;
+}
+
+function groupLabel(group: ThreadGroup, allGroups: ThreadGroup[]): string {
+  const duplicateName = allGroups.some((other) => other.cwd !== group.cwd && other.project === group.project);
+  if (!duplicateName) return group.project;
+  return `${basename(dirname(group.cwd))}/${group.project}`;
+}
+
+function plural(count: number, word: string): string {
+  return count === 1 ? word : `${word}s`;
 }
