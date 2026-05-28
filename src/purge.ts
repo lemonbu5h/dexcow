@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { resolveLogsDbPath } from "./codexStores.ts";
 import { paths } from "./paths.ts";
 import { removeThreadNames } from "./sessionIndex.ts";
 import type { Thread } from "./threads.ts";
@@ -60,7 +61,7 @@ export async function purgeThreads(
   }
 
   result.stateRows = deleteStateRows(stateDb, ids).rows;
-  result.logRows = deleteLogRows(ids, opts.logsDbPath ?? paths.logsDb);
+  result.logRows = deleteLogRows(ids, opts.logsDbPath ?? resolveLogsDbPath());
   result.sessionIndexRows = await removeThreadNames(ids, opts.sessionIndexPath ?? paths.sessionIndex);
 
   return result;
@@ -94,7 +95,8 @@ function deleteStateRows(db: Database, ids: Set<string>): StateCleanupResult {
   return cleanup([...ids]) as StateCleanupResult;
 }
 
-function deleteLogRows(ids: Set<string>, logsDbPath: string): number {
+function deleteLogRows(ids: Set<string>, logsDbPath: string | null): number {
+  if (!logsDbPath) return 0;
   let db: Database | null = null;
   try {
     db = new Database(logsDbPath, { create: false, readwrite: true });

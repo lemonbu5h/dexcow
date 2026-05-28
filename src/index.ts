@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { updateSettings } from "@clack/prompts";
 import pc from "picocolors";
-import { paths } from "./paths.ts";
+import { describeStateDbPath } from "./codexStores.ts";
 import { parseArgs } from "./args.ts";
 import { runInteractive, runList, runRemove, runTrash } from "./commands.ts";
 import { helpFor } from "./help.ts";
@@ -52,7 +52,7 @@ async function main(argv: string[]): Promise<void> {
     }
   } catch (err) {
     if (isMissingDb(err)) {
-      console.error(pc.red("Codex state database not found:"), paths.stateDb);
+      console.error(pc.red("Codex state database not found:"), describeStateDbPath());
       console.error(pc.dim("Is Codex installed? Set CODEX_HOME to override."));
       process.exit(1);
     }
@@ -62,7 +62,7 @@ async function main(argv: string[]): Promise<void> {
 
 function isMissingDb(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
-  return msg.includes("unable to open") || msg.includes("ENOENT");
+  return msg.includes("Codex state database not found") || msg.includes("unable to open") || msg.includes("ENOENT");
 }
 
 await main(process.argv);
