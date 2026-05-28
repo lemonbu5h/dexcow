@@ -1,5 +1,5 @@
 import pc from "picocolors";
-import { paths } from "./paths.ts";
+import { describeStateDbPath } from "./codexStores.ts";
 
 const MAIN_HELP = `${pc.bold("dexcow")} — a cow that eats your Codex sessions
 
@@ -18,7 +18,7 @@ ${pc.bold("Flags:")}
   --yes, -y           With trash --empty: skip confirmation
 
 ${pc.bold("Data source:")}
-  ${pc.dim(paths.stateDb)}
+  ${pc.dim(describeStateDbPath())}
 `;
 
 const COMMAND_HELP: Record<string, string> = {

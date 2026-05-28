@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { paths } from "./paths.ts";
+import { resolveStateDbPath } from "./codexStores.ts";
 import { loadThreadNames, type ThreadNameMap } from "./sessionIndex.ts";
 
 export interface Thread {
@@ -27,7 +27,7 @@ const SELECT_ALL = `
 `;
 
 export function openDb(): Database {
-  return new Database(paths.stateDb, { create: false, readwrite: true });
+  return new Database(resolveStateDbPath(), { create: false, readwrite: true });
 }
 
 export async function listThreads(db: Database): Promise<Thread[]> {

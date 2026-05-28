@@ -19,12 +19,27 @@ Related files: `src/index.ts`, `src/commands.ts`, `src/purge.ts`, `src/threads.t
 
 ```mermaid
 flowchart LR
-  A["Open DB"] --> B["Load sessions"]
-  B --> C["Pick + confirm"]
-  C --> D["Move/delete rollout files"]
-  D --> E["Purge state, logs, index"]
-  E --> F["Summary"]
+  A["Find state_*.sqlite"] --> B["Open DB"]
+  B --> C["Load sessions"]
+  C --> D["Pick repo + sessions"]
+  D --> E["Move/delete rollout files"]
+  E --> F["Purge state, logs, index"]
+  F --> G["Summary"]
 ```
+
+### Store discovery
+
+Related files: `src/codexStores.ts`, `src/paths.ts`, `src/threads.ts`, `src/purge.ts`.
+
+```mermaid
+flowchart LR
+  A["Scan CODEX_HOME"] --> B["Match state_*.sqlite / logs_*.sqlite"]
+  B --> C["Check expected tables + columns"]
+  C --> D["Use newest valid schema"]
+  C --> E["Ignore unrelated DBs"]
+```
+
+`dexcow` treats Codex's numbered SQLite filenames as internal schema generations. It prefers the newest matching file with the expected schema instead of relying on one hardcoded filename. Nested databases such as `~/.codex/sqlite/codex-dev.db` are outside the session purge scope.
 
 ### List sessions
 
@@ -32,10 +47,11 @@ Related files: `src/index.ts`, `src/commands.ts`, `src/threads.ts`, `src/session
 
 ```mermaid
 flowchart LR
-  A["Open DB"] --> B["Load sessions"]
-  B --> C["Resolve titles"]
-  C --> D["Format rows"]
-  D --> E["Print"]
+  A["Find state_*.sqlite"] --> B["Open DB"]
+  B --> C["Load sessions"]
+  C --> D["Resolve titles"]
+  D --> E["Group by repo"]
+  E --> F["Print"]
 ```
 
 ### Remove by id
@@ -44,25 +60,26 @@ Related files: `src/index.ts`, `src/commands.ts`, `src/purge.ts`, `src/threads.t
 
 ```mermaid
 flowchart LR
-  A["Open DB"] --> B["Load sessions"]
-  B --> C["Match ids"]
-  C --> D["Move/delete rollout files"]
-  D --> E["Purge state, logs, index"]
-  E --> F["Summary"]
+  A["Find state_*.sqlite"] --> B["Open DB"]
+  B --> C["Load sessions"]
+  C --> D["Match ids"]
+  D --> E["Move/delete rollout files"]
+  E --> F["Purge state, logs, index"]
+  F --> G["Summary"]
 ```
 
 ## Purge Scope
 
 `dexcow` removes:
 
-- thread rows from `~/.codex/state_5.sqlite`
+- thread rows from the newest valid `~/.codex/state_*.sqlite`
 - related rows from `thread_dynamic_tools`, `thread_spawn_edges`, and `stage1_outputs` when those tables exist
 - `agent_job_items.assigned_thread_id` references when that column exists
-- matching `thread_id` rows from `~/.codex/logs_2.sqlite` when the logs database exists
+- matching `thread_id` rows from the newest valid `~/.codex/logs_*.sqlite` when the logs database exists
 - matching entries from `~/.codex/session_index.jsonl`
 - rollout files under `~/.codex/sessions/`
 
-It leaves `auth.json`, `config.toml`, memories, and skills alone.
+It leaves `auth.json`, `config.toml`, memories, skills, and `~/.codex/sqlite/codex-dev.db` alone.
 
 ## Trash
 
