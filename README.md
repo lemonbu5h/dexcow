@@ -56,9 +56,9 @@ After deleting sessions, restart Codex if the GUI still shows old sessions. Code
 
 ## Safety
 
-`dexcow` removes local Codex session records, logs, index entries, and rollout files for the sessions you choose.
+`dexcow` removes local Codex session records, logs, index entries, and rollout files for the sessions you choose. It discovers Codex's numbered `state_*.sqlite` and `logs_*.sqlite` files by checking their schema, so minor Codex storage filename changes are less likely to break cleanup.
 
-It does not touch `auth.json`, `config.toml`, memories, or skills.
+It does not touch `auth.json`, `config.toml`, memories, skills, or `sqlite/codex-dev.db`.
 
 Set `CODEX_HOME` to point at a non-default Codex directory.
 
