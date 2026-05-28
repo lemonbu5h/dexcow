@@ -1,6 +1,7 @@
 # dexcow
 
 [![CI](https://github.com/lemonbu5h/dexcow/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonbu5h/dexcow/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/lemonbu5h/dexcow/branch/main/graph/badge.svg)](https://codecov.io/gh/lemonbu5h/dexcow)
 [![Release](https://github.com/lemonbu5h/dexcow/actions/workflows/release.yml/badge.svg)](https://github.com/lemonbu5h/dexcow/actions/workflows/release.yml)
 [![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-black?logo=bun)](https://bun.sh)
 
@@ -69,6 +70,7 @@ bun install
 bun run dev
 bun run typecheck
 bun test
+bun run coverage
 bun run build
 bun run compile
 ```
