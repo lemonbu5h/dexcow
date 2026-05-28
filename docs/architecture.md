@@ -93,3 +93,13 @@ flowchart LR
   B2 --> C2["Confirm"]
   C2 --> D2["Delete .dexcow-trash"]
 ```
+
+## Test Coverage
+
+Coverage uses Bun's native test runner. Local and CI coverage share `bunfig.toml`, skip test files, emit text and LCOV reports, and require at least 80% line and function coverage.
+
+```bash
+bun run coverage
+```
+
+CI uploads `coverage/lcov.info` to Codecov for the README coverage badge.
