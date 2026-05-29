@@ -5,7 +5,7 @@
 [![Release](https://github.com/lemonbu5h/dexcow/actions/workflows/release.yml/badge.svg)](https://github.com/lemonbu5h/dexcow/actions/workflows/release.yml)
 [![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-black?logo=bun)](https://bun.sh)
 
-A tiny CLI for cleaning up local Codex sessions.
+Hi, I'm `dexcow`. I eat local Codex sessions.
 
 Codex does not currently expose session deletion in the GUI. `dexcow` reads Codex's local session index, lets you pick sessions by title/repo, and purges the selected local session state.
 
@@ -34,8 +34,6 @@ bun run build
 bun link
 ```
 
-`bun install -g dexcow` will work after the package is published to npm.
-
 ## Use
 
 ```bash
@@ -53,7 +51,7 @@ By default, rollout files move to `~/.codex/.dexcow-trash/<date>/`. `--hard` ski
 
 The interactive picker shows repository names instead of full working-directory paths. Press space to select sessions, then enter to review the selected sessions and confirm.
 
-After deleting sessions, restart Codex if the GUI still shows old sessions. Codex may cache session state while it is running.
+After deleting sessions, refresh Codex if the GUI still shows old sessions. Clicking the repo in Codex and collapsing or expanding it usually refreshes the list; restart Codex only if it still looks stale.
 
 ## Safety
 

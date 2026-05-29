@@ -67,7 +67,7 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
     }
 
     const result = await purgeThreads(db, chosen, opts);
-    p.outro(summarize(result, opts) + trashLocation(result, opts) + restartNote());
+    p.outro(summarize(result, opts) + trashLocation(result, opts) + refreshNote());
   } finally {
     db.close();
   }
@@ -106,7 +106,7 @@ export async function runRemove(ids: string[], opts: DeleteOptions): Promise<voi
       chosen.push(t);
     }
     const result = await purgeThreads(db, chosen, opts);
-    console.log(summarize(result, opts) + trashLocation(result, opts) + restartNote());
+    console.log(summarize(result, opts) + trashLocation(result, opts) + refreshNote());
   } finally {
     db.close();
   }
@@ -162,8 +162,8 @@ function trashLocation(r: PurgeResult, opts: DeleteOptions): string {
   return pc.dim(`\ntrash: ${shortenCwd(paths.trash)}`);
 }
 
-function restartNote(): string {
-  return pc.dim("\nrestart Codex if old sessions still appear in the GUI");
+function refreshNote(): string {
+  return pc.dim("\nrefresh Codex if old sessions still appear (collapse or expand the repo usually works)");
 }
 
 function exitCleanly(message: string): void {
