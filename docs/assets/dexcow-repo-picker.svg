@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="510" viewBox="0 0 1100 510" role="img" aria-labelledby="title desc">
+  <title id="title">dexcow repo picker demo</title>
+  <desc id="desc">A terminal screenshot showing dexcow prompting the user to pick a repository from fake demo repositories.</desc>
+  <rect width="1100" height="510" fill="#282a36"/>
+  <style>
+    .term { font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 26px; font-weight: 500; letter-spacing: 0; }
+    .muted { fill: #9a9aa6; }
+    .fg { fill: #f8f8f2; }
+    .green { fill: #5ef78d; }
+    .cyan { fill: #8be9fd; }
+    .pink { fill: #ff79c6; }
+    .accent { stroke: #8be9fd; stroke-width: 3; }
+    .dim { stroke: #8a8c9f; stroke-width: 3; }
+  </style>
+
+  <text x="0" y="28" class="term fg">(demo)</text>
+  <text x="132" y="28" class="term green">user@workstation</text>
+  <text x="520" y="28" class="term" fill="#d6b4ff">~</text>
+  <text x="0" y="64" class="term fg">$ dexcow</text>
+
+  <rect x="58" y="70" width="150" height="36" fill="#ff79c6"/>
+  <text x="82" y="99" class="term" fill="#282a36">dexcow</text>
+  <text x="226" y="99" class="term muted">cow eats Codex sessions</text>
+
+  <path d="M18 92 H29 M18 92 V143" class="dim" fill="none"/>
+  <path d="M18 180 V488 H28" class="accent" fill="none"/>
+  <polygon points="18,155 27,164 18,173 9,164" fill="#8be9fd"/>
+
+  <text x="64" y="172" class="term fg">Pick a repo</text>
+
+  <circle cx="72" cy="197" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="100" y="207" class="term muted">atlas-web</text>
+  <text x="600" y="207" class="term muted">12 sessions</text>
+  <text x="820" y="207" class="term muted">latest</text>
+  <text x="990" y="207" class="term muted">14m</text>
+
+  <circle cx="72" cy="233" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="100" y="243" class="term muted">playground-api</text>
+  <text x="600" y="243" class="term muted">4 sessions</text>
+  <text x="820" y="243" class="term muted">latest</text>
+  <text x="990" y="243" class="term muted">2h</text>
+
+  <circle cx="72" cy="269" r="9" fill="#5ef78d"/>
+  <text x="100" y="279" class="term fg">codex-notes</text>
+  <text x="600" y="279" class="term fg">7 sessions</text>
+  <text x="820" y="279" class="term fg">latest</text>
+  <text x="990" y="279" class="term fg">6h</text>
+
+  <circle cx="72" cy="305" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="100" y="315" class="term muted">site-builder</text>
+  <text x="600" y="315" class="term muted">3 sessions</text>
+  <text x="820" y="315" class="term muted">latest</text>
+  <text x="990" y="315" class="term muted">1d</text>
+
+  <circle cx="72" cy="341" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="100" y="351" class="term muted">design-lab</text>
+  <text x="600" y="351" class="term muted">1 session</text>
+  <text x="820" y="351" class="term muted">latest</text>
+  <text x="990" y="351" class="term muted">4d</text>
+
+  <circle cx="72" cy="377" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="100" y="387" class="term muted">dexcow-demo</text>
+  <text x="600" y="387" class="term muted">2 sessions</text>
+  <text x="820" y="387" class="term muted">latest</text>
+  <text x="990" y="387" class="term muted">6d</text>
+
+  <circle cx="72" cy="413" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="100" y="423" class="term muted">release-sandbox</text>
+  <text x="600" y="423" class="term muted">1 session</text>
+  <text x="820" y="423" class="term muted">latest</text>
+  <text x="990" y="423" class="term muted">9d</text>
+</svg>
