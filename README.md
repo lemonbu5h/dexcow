@@ -9,6 +9,16 @@ Hi, I'm `dexcow`. I eat local Codex sessions.
 
 Codex does not currently expose session deletion in the GUI. `dexcow` reads Codex's local session index, lets you pick sessions by title/repo, and purges the selected local session state.
 
+## Preview
+
+<p>
+  <img src="docs/assets/dexcow-repo-picker.svg" alt="dexcow repo picker showing demo repositories" width="920">
+</p>
+
+<p>
+  <img src="docs/assets/dexcow-session-picker.svg" alt="dexcow session picker showing demo sessions" width="920">
+</p>
+
 ## Install
 
 Recommended:

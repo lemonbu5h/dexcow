@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1350" height="650" viewBox="0 0 1350 650" role="img" aria-labelledby="title desc">
+  <title id="title">dexcow session picker demo</title>
+  <desc id="desc">A terminal screenshot showing dexcow prompting the user to pick sessions to trash using fake demo session titles.</desc>
+  <rect width="1350" height="650" fill="#282a36"/>
+  <style>
+    .term { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 26px; font-weight: 700; letter-spacing: 0; }
+    .muted { fill: #9a9aa6; }
+    .fg { fill: #f8f8f2; }
+    .green { fill: #5ef78d; }
+    .cyan { fill: #8be9fd; }
+    .pink { fill: #ff79c6; }
+    .accent { stroke: #8be9fd; stroke-width: 3; }
+    .dim { stroke: #8a8c9f; stroke-width: 3; }
+  </style>
+
+  <text x="0" y="28" class="term fg">(demo)</text>
+  <text x="132" y="28" class="term green">user@workstation</text>
+  <text x="520" y="28" class="term" fill="#d6b4ff">~</text>
+  <text x="0" y="64" class="term fg">$ dexcow</text>
+
+  <rect x="58" y="70" width="150" height="36" fill="#ff79c6"/>
+  <text x="82" y="99" class="term" fill="#282a36">dexcow</text>
+  <text x="226" y="99" class="term muted">cow eats Codex sessions</text>
+
+  <path d="M12 92 H29 M12 92 V143" class="dim" fill="none"/>
+  <path d="M12 180 V253" class="dim" fill="none"/>
+  <path d="M12 288 V632 H24" class="accent" fill="none"/>
+  <polygon points="12,155 21,164 12,173 3,164" fill="#5ef78d"/>
+  <polygon points="12,263 21,272 12,281 3,272" fill="#8be9fd"/>
+
+  <text x="58" y="172" class="term fg">Pick a repo</text>
+  <text x="58" y="207" class="term muted">codex-notes</text>
+  <text x="600" y="207" class="term muted">7 sessions</text>
+  <text x="815" y="207" class="term muted">latest</text>
+  <text x="980" y="207" class="term muted">6h</text>
+
+  <text x="58" y="280" class="term fg">Pick sessions to trash (space toggles, enter continues, q exits)</text>
+
+  <rect x="60" y="302" width="12" height="12" fill="none" stroke="#8be9fd" stroke-width="3"/>
+  <text x="112" y="316" class="term muted">6h</text>
+  <text x="202" y="316" class="term fg">Review README screenshot copy</text>
+  <text x="1210" y="316" class="term green">active</text>
+
+  <rect x="60" y="338" width="12" height="12" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="112" y="352" class="term muted">7h</text>
+  <text x="202" y="352" class="term muted">Try release installer on macOS</text>
+  <text x="1210" y="352" class="term green">active</text>
+
+  <rect x="60" y="374" width="12" height="12" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="112" y="388" class="term muted">2d</text>
+  <text x="202" y="388" class="term muted">Clean up stale local sessions</text>
+  <text x="1210" y="388" class="term green">active</text>
+
+  <rect x="60" y="410" width="12" height="12" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="112" y="424" class="term muted">2d</text>
+  <text x="202" y="424" class="term muted">Polish grouped repo picker</text>
+  <text x="1210" y="424" class="term green">active</text>
+
+  <rect x="60" y="446" width="12" height="12" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="112" y="460" class="term muted">13d</text>
+  <text x="202" y="460" class="term muted">Move old branch notes to docs</text>
+  <text x="1210" y="460" class="term green">active</text>
+
+  <rect x="60" y="482" width="12" height="12" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="112" y="496" class="term muted">13d</text>
+  <text x="202" y="496" class="term muted">Check coverage badge output</text>
+  <text x="1210" y="496" class="term green">active</text>
+
+  <rect x="60" y="518" width="12" height="12" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="112" y="532" class="term muted">16d</text>
+  <text x="202" y="532" class="term muted">Document trash empty workflow</text>
+  <text x="1210" y="532" class="term green">active</text>
+
+  <rect x="60" y="554" width="12" height="12" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="112" y="568" class="term muted">23d</text>
+  <text x="202" y="568" class="term muted">Verify Codex database discovery</text>
+  <text x="1210" y="568" class="term green">active</text>
+
+  <rect x="60" y="590" width="12" height="12" fill="none" stroke="#9a9aa6" stroke-width="3"/>
+  <text x="112" y="604" class="term muted">2mo</text>
+  <text x="202" y="604" class="term muted">Archive experimental CLI notes</text>
+  <text x="1210" y="604" class="term green">active</text>
+</svg>
