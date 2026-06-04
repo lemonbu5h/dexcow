@@ -3,7 +3,7 @@
   <desc id="desc">A terminal screenshot showing dexcow prompting the user to pick a repository from fake demo repositories.</desc>
   <rect width="1100" height="510" fill="#282a36"/>
   <style>
-    .term { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 26px; font-weight: 700; letter-spacing: 0; }
+    .term { font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 26px; font-weight: 500; letter-spacing: 0; }
     .muted { fill: #9a9aa6; }
     .fg { fill: #f8f8f2; }
     .green { fill: #5ef78d; }
