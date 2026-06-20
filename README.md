@@ -1,13 +1,15 @@
 # dexcow
 
+**Clean up local Codex sessions with an agent skill or an interactive terminal UI.**
+
+Use the included agent skill for a guided cleanup, or the standalone TUI for a visible, deterministic selection flow. Both use the same local-first cleanup core and default to trash.
+
 [![CI](https://github.com/lemonbu5h/dexcow/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonbu5h/dexcow/actions/workflows/ci.yml)
 [![Coverage](https://codecov.io/gh/lemonbu5h/dexcow/branch/main/graph/badge.svg)](https://codecov.io/gh/lemonbu5h/dexcow)
 [![Release](https://github.com/lemonbu5h/dexcow/actions/workflows/release.yml/badge.svg)](https://github.com/lemonbu5h/dexcow/actions/workflows/release.yml)
 [![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-black?logo=bun)](https://bun.sh)
 
-Hi, I'm `dexcow`. I eat local Codex sessions.
-
-Codex does not currently expose session deletion in the GUI. `dexcow` reads Codex's local session index, lets you pick sessions by title/repo, and purges the selected local session state.
+Codex does not currently expose session deletion in the GUI. `dexcow` reads the local session index, lets you inspect sessions by title and repo, then cleans up the selected local state.
 
 ## Demo
 
@@ -20,6 +22,18 @@ Codex does not currently expose session deletion in the GUI. `dexcow` reads Code
 </p>
 
 ## Quick Start
+
+### Ask Your Agent
+
+Install [`skills/dexcow`](skills/dexcow) in your agent's skills directory. For Codex, copy it to `~/.codex/skills/dexcow`, then ask:
+
+```text
+Use $dexcow to review my local Codex sessions and help me safely remove the ones I choose.
+```
+
+The skill bundles its own structured agent runner. It requires Bun, but it does not require the `dexcow` CLI/TUI to be installed.
+
+### Use the Interactive TUI
 
 Recommended:
 

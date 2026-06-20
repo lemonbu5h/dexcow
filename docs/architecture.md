@@ -13,6 +13,20 @@ flowchart LR
   A --> F["--version"]
 ```
 
+### Agent skill
+
+Related files: `skills/dexcow/SKILL.md`, `src/agent.ts`, `src/purge.ts`, `src/threads.ts`, `src/trash.ts`.
+
+```mermaid
+flowchart LR
+  A["Agent request"] --> B["SKILL.md workflow"]
+  B --> C["dexcow-agent JSON runner"]
+  C --> D["Shared session and purge modules"]
+  D --> E["Local Codex stores"]
+```
+
+The bundled agent runner is separate from the interactive CLI/TUI, but both front ends reuse the same session discovery, purge, and trash modules. The skill requires Bun to run its bundled JavaScript; the standalone release binary does not.
+
 ### Interactive delete
 
 Related files: `src/index.ts`, `src/commands.ts`, `src/purge.ts`, `src/threads.ts`, `src/sessionIndex.ts`, `src/trash.ts`.
