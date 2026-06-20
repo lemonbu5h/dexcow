@@ -26,13 +26,13 @@ const SELECT_ALL = `
   ORDER BY updated_at DESC, id DESC
 `;
 
-export function openDb(): Database {
-  return new Database(resolveStateDbPath(), { create: false, readwrite: true });
+export function openDb(stateDbPath = resolveStateDbPath()): Database {
+  return new Database(stateDbPath, { create: false, readwrite: true });
 }
 
-export async function listThreads(db: Database): Promise<Thread[]> {
+export async function listThreads(db: Database, sessionIndexPath?: string): Promise<Thread[]> {
   // The database owns deletion state; session_index.jsonl only improves the title shown to users.
-  const names = await loadThreadNames();
+  const names = await loadThreadNames(sessionIndexPath);
   return db.query(SELECT_ALL).all().map((r) => toThread(r, names));
 }
 
