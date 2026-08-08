@@ -117,7 +117,7 @@ function compareThreadsByRecent(a: Thread | undefined, b: Thread | undefined): n
 }
 
 export function threadGroupLabel(group: ThreadGroup, allGroups: ThreadGroup[]): string {
-  if (group.kind === "unlinked") return `${UNLINKED_GROUP_NAME} (repo folder missing)`;
+  if (group.kind === "unlinked") return `${UNLINKED_GROUP_NAME} (no Git repo)`;
   const duplicateName = group.project === UNLINKED_GROUP_NAME
     || allGroups.some((other) => other.id !== group.id && other.project === group.project);
   if (!duplicateName) return group.project;
