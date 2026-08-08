@@ -14,34 +14,39 @@ afterEach(async () => {
   }
 });
 
-test("purges thread records, logs, session index entries, and trashes rollout files", async () => {
+test("purges current Codex session stores and files", async () => {
   const fixture = await createFixture();
   const stateDb = new Database(fixture.stateDbPath, { create: false, readwrite: true });
 
   try {
     const result = await purgeThreads(stateDb, [fixture.thread], {
-      hard: false,
       logsDbPath: fixture.logsDbPath,
       sessionIndexPath: fixture.sessionIndexPath,
-      sessionsRoot: fixture.sessionsRoot,
-      trashRoot: fixture.trashRoot,
+      rolloutRoots: [fixture.sessionsRoot, fixture.archivedSessionsRoot],
+      shellSnapshotsRoot: fixture.shellSnapshotsRoot,
+      threadWriterLocksRoot: join(fixture.root, "thread-writer-locks"),
+      desktopDbPath: fixture.desktopDbPath,
+      historySnapshotsDbPath: fixture.historySnapshotsDbPath,
     });
 
     expect(result).toMatchObject({
       removed: 1,
       missingFiles: 0,
-      trashedFiles: 1,
-      deletedFiles: 0,
-      stateRows: 5,
+      deletedFiles: 1,
+      stateRows: 3,
       logRows: 2,
       sessionIndexRows: 2,
+      catalogRows: 1,
+      timelineRows: 1,
+      automationRunRows: 1,
+      inboxRows: 1,
+      historySnapshotRows: 1,
+      shellSnapshots: 1,
     });
 
     expect(countRows(stateDb, "threads", "id = 'thread-1'")).toBe(0);
     expect(countRows(stateDb, "thread_dynamic_tools", "thread_id = 'thread-1'")).toBe(0);
-    expect(countRows(stateDb, "stage1_outputs", "thread_id = 'thread-1'")).toBe(0);
     expect(countRows(stateDb, "thread_spawn_edges", "parent_thread_id = 'thread-1' OR child_thread_id = 'thread-1'")).toBe(0);
-    expect(countRows(stateDb, "agent_job_items", "assigned_thread_id = 'thread-1'")).toBe(0);
     expect(countRows(stateDb, "threads", "id = 'thread-2'")).toBe(1);
 
     const logsDb = new Database(fixture.logsDbPath, { create: false, readwrite: true });
@@ -56,29 +61,14 @@ test("purges thread records, logs, session index entries, and trashes rollout fi
     expect(index).not.toContain("thread-1");
     expect(index).toContain("thread-2");
     expect(await exists(fixture.rolloutPath)).toBe(false);
-    expect(await exists(join(fixture.trashRoot, today(), "rollout-thread-1.jsonl"))).toBe(true);
-  } finally {
-    stateDb.close();
-  }
-});
+    expect(await exists(join(fixture.shellSnapshotsRoot, "thread-1.123.sh"))).toBe(false);
+    expect(await exists(join(fixture.shellSnapshotsRoot, "thread-2.123.sh"))).toBe(true);
 
-test("hard purge deletes rollout files without using trash", async () => {
-  const fixture = await createFixture();
-  const stateDb = new Database(fixture.stateDbPath, { create: false, readwrite: true });
-
-  try {
-    const result = await purgeThreads(stateDb, [fixture.thread], {
-      hard: true,
-      logsDbPath: fixture.logsDbPath,
-      sessionIndexPath: fixture.sessionIndexPath,
-      sessionsRoot: fixture.sessionsRoot,
-      trashRoot: fixture.trashRoot,
-    });
-
-    expect(result.trashedFiles).toBe(0);
-    expect(result.deletedFiles).toBe(1);
-    expect(await exists(fixture.rolloutPath)).toBe(false);
-    expect(await exists(join(fixture.trashRoot, today(), "rollout-thread-1.jsonl"))).toBe(false);
+    expect(countRowsAt(fixture.desktopDbPath, "local_thread_catalog", "thread_id = 'thread-1'")).toBe(0);
+    expect(countRowsAt(fixture.desktopDbPath, "thread_timeline_ledger", "thread_id = 'thread-1'")).toBe(0);
+    expect(countRowsAt(fixture.desktopDbPath, "automation_runs", "thread_id = 'thread-1'")).toBe(0);
+    expect(countRowsAt(fixture.desktopDbPath, "inbox_items", "thread_id = 'thread-1'")).toBe(0);
+    expect(countRowsAt(fixture.historySnapshotsDbPath, "app_server_history_snapshots", "thread_id = 'thread-1'")).toBe(0);
   } finally {
     stateDb.close();
   }
@@ -97,13 +87,18 @@ test("purge tolerates missing optional Codex stores", async () => {
   const stateDb = new Database(stateDbPath, { create: true, readwrite: true });
   try {
     stateDb.run("CREATE TABLE threads (id TEXT PRIMARY KEY)");
+    stateDb.run("CREATE TABLE thread_dynamic_tools (thread_id TEXT)");
+    stateDb.run("CREATE TABLE thread_spawn_edges (parent_thread_id TEXT, child_thread_id TEXT)");
     stateDb.query("INSERT INTO threads VALUES (?)").run("thread-1");
 
     const result = await purgeThreads(stateDb, [thread("thread-1", rolloutPath, root)], {
-      hard: true,
       logsDbPath: join(root, "missing-logs.sqlite"),
       sessionIndexPath: join(root, "missing-session-index.jsonl"),
-      sessionsRoot,
+      rolloutRoots: [sessionsRoot, join(root, "archived_sessions")],
+      shellSnapshotsRoot: join(root, "missing-shell-snapshots"),
+      threadWriterLocksRoot: join(root, "missing-thread-writer-locks"),
+      desktopDbPath: join(root, "missing-codex-dev.db"),
+      historySnapshotsDbPath: join(root, "missing-history.db"),
     });
 
     expect(result).toMatchObject({
@@ -120,11 +115,15 @@ test("purge tolerates missing optional Codex stores", async () => {
 });
 
 interface Fixture {
+  root: string;
   stateDbPath: string;
   logsDbPath: string;
   sessionIndexPath: string;
   sessionsRoot: string;
-  trashRoot: string;
+  archivedSessionsRoot: string;
+  shellSnapshotsRoot: string;
+  desktopDbPath: string;
+  historySnapshotsDbPath: string;
   rolloutPath: string;
   thread: Thread;
 }
@@ -134,8 +133,11 @@ async function createFixture(): Promise<Fixture> {
   tempDirs.push(root);
 
   const sessionsRoot = join(root, "sessions");
-  const trashRoot = join(root, ".dexcow-trash");
+  const archivedSessionsRoot = join(root, "archived_sessions");
+  const shellSnapshotsRoot = join(root, "shell_snapshots");
   await mkdir(sessionsRoot, { recursive: true });
+  await mkdir(archivedSessionsRoot, { recursive: true });
+  await mkdir(shellSnapshotsRoot, { recursive: true });
 
   const rolloutPath = join(sessionsRoot, "rollout-thread-1.jsonl");
   await writeFile(rolloutPath, "{}\n", "utf8");
@@ -143,6 +145,9 @@ async function createFixture(): Promise<Fixture> {
   const stateDbPath = join(root, "state_5.sqlite");
   const logsDbPath = join(root, "logs_2.sqlite");
   const sessionIndexPath = join(root, "session_index.jsonl");
+  const desktopDbPath = join(root, "sqlite", "codex-dev.db");
+  const historySnapshotsDbPath = join(root, "sqlite", "codex-history-snapshots-dev.db");
+  await mkdir(join(root, "sqlite"), { recursive: true });
 
   const stateDb = new Database(stateDbPath, { create: true, readwrite: true });
   try {
@@ -160,6 +165,11 @@ async function createFixture(): Promise<Fixture> {
     logsDb.close();
   }
 
+  createDesktopDb(desktopDbPath);
+  createHistorySnapshotsDb(historySnapshotsDbPath);
+  await writeFile(join(shellSnapshotsRoot, "thread-1.123.sh"), "snapshot", "utf8");
+  await writeFile(join(shellSnapshotsRoot, "thread-2.123.sh"), "snapshot", "utf8");
+
   await writeFile(
     sessionIndexPath,
     [
@@ -172,31 +182,58 @@ async function createFixture(): Promise<Fixture> {
   );
 
   return {
+    root,
     stateDbPath,
     logsDbPath,
     sessionIndexPath,
     sessionsRoot,
-    trashRoot,
+    archivedSessionsRoot,
+    shellSnapshotsRoot,
+    desktopDbPath,
+    historySnapshotsDbPath,
     rolloutPath,
     thread: thread("thread-1", rolloutPath, root),
   };
 }
 
 function createStateSchema(db: Database): void {
-  db.run("CREATE TABLE threads (id TEXT PRIMARY KEY, rollout_path TEXT NOT NULL, cwd TEXT NOT NULL, title TEXT NOT NULL, updated_at INTEGER NOT NULL, archived INTEGER NOT NULL)");
+  db.run("CREATE TABLE threads (id TEXT PRIMARY KEY, rollout_path TEXT NOT NULL, cwd TEXT NOT NULL, git_origin_url TEXT NOT NULL, title TEXT NOT NULL, updated_at INTEGER NOT NULL, archived INTEGER NOT NULL)");
   db.run("CREATE TABLE thread_dynamic_tools (thread_id TEXT NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL, input_schema TEXT NOT NULL, PRIMARY KEY(thread_id, position))");
-  db.run("CREATE TABLE stage1_outputs (thread_id TEXT PRIMARY KEY, source_updated_at INTEGER NOT NULL, raw_memory TEXT NOT NULL, rollout_summary TEXT NOT NULL, generated_at INTEGER NOT NULL)");
   db.run("CREATE TABLE thread_spawn_edges (parent_thread_id TEXT NOT NULL, child_thread_id TEXT NOT NULL PRIMARY KEY, status TEXT NOT NULL)");
-  db.run("CREATE TABLE agent_job_items (job_id TEXT NOT NULL, item_id TEXT NOT NULL, assigned_thread_id TEXT, PRIMARY KEY(job_id, item_id))");
 }
 
 function seedState(db: Database, rolloutPath: string): void {
-  db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?)").run("thread-1", rolloutPath, "/tmp", "Delete me", 1, 0);
-  db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?)").run("thread-2", rolloutPath, "/tmp", "Keep me", 2, 0);
+  db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?, ?)").run("thread-1", rolloutPath, "/tmp", "git@github.com:demo/repo.git", "Delete me", 1, 0);
+  db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?, ?)").run("thread-2", rolloutPath, "/tmp", "git@github.com:demo/repo.git", "Keep me", 2, 0);
   db.query("INSERT INTO thread_dynamic_tools VALUES (?, ?, ?, ?, ?)").run("thread-1", 0, "tool", "desc", "{}");
-  db.query("INSERT INTO stage1_outputs VALUES (?, ?, ?, ?, ?)").run("thread-1", 1, "raw", "summary", 1);
   db.query("INSERT INTO thread_spawn_edges VALUES (?, ?, ?)").run("thread-1", "child-1", "done");
-  db.query("INSERT INTO agent_job_items VALUES (?, ?, ?)").run("job-1", "item-1", "thread-1");
+}
+
+function createDesktopDb(path: string): void {
+  const db = new Database(path, { create: true, readwrite: true });
+  try {
+    db.run("CREATE TABLE local_thread_catalog (host_id TEXT, thread_id TEXT)");
+    db.run("CREATE TABLE thread_timeline_ledger (host_id TEXT, thread_id TEXT, sequence INTEGER)");
+    db.run("CREATE TABLE automation_runs (thread_id TEXT)");
+    db.run("CREATE TABLE inbox_items (id TEXT, thread_id TEXT)");
+    db.query("INSERT INTO local_thread_catalog VALUES (?, ?)").run("local", "thread-1");
+    db.query("INSERT INTO local_thread_catalog VALUES (?, ?)").run("local", "thread-2");
+    db.query("INSERT INTO thread_timeline_ledger VALUES (?, ?, ?)").run("local", "thread-1", 1);
+    db.query("INSERT INTO automation_runs VALUES (?)").run("thread-1");
+    db.query("INSERT INTO inbox_items VALUES (?, ?)").run("inbox-1", "thread-1");
+  } finally {
+    db.close();
+  }
+}
+
+function createHistorySnapshotsDb(path: string): void {
+  const db = new Database(path, { create: true, readwrite: true });
+  try {
+    db.run("CREATE TABLE app_server_history_snapshots (thread_id TEXT)");
+    db.query("INSERT INTO app_server_history_snapshots VALUES (?)").run("thread-1");
+  } finally {
+    db.close();
+  }
 }
 
 function createLogsSchema(db: Database): void {
@@ -215,6 +252,7 @@ function thread(id: string, rolloutPath: string, cwd: string): Thread {
     title: "Delete me",
     rolloutPath,
     cwd,
+    gitOriginUrl: "git@github.com:demo/repo.git",
     updatedAt: new Date("2026-01-02T00:00:00Z"),
     archived: false,
   };
@@ -225,6 +263,15 @@ function countRows(db: Database, table: string, where: string): number {
   return row.count;
 }
 
+function countRowsAt(path: string, table: string, where: string): number {
+  const db = new Database(path, { create: false, readonly: true });
+  try {
+    return countRows(db, table, where);
+  } finally {
+    db.close();
+  }
+}
+
 async function exists(path: string): Promise<boolean> {
   try {
     await stat(path);
@@ -232,8 +279,4 @@ async function exists(path: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
 }

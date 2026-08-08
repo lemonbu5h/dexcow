@@ -13,13 +13,12 @@ afterEach(async () => {
   }
 });
 
-test("resolveStateDbPath chooses the newest valid state schema", async () => {
+test("resolveStateDbPath uses the current state_5 schema", async () => {
   const root = await createCodexHome();
-  createInvalidDb(join(root, "state_99.sqlite"));
   createStateDb(join(root, "state_5.sqlite"));
   createStateDb(join(root, "state_6.sqlite"));
 
-  expect(resolveStateDbPath(root)).toBe(join(root, "state_6.sqlite"));
+  expect(resolveStateDbPath(root)).toBe(join(root, "state_5.sqlite"));
 });
 
 test("resolveStateDbPath ignores nested codex-dev databases", async () => {
@@ -35,15 +34,15 @@ test("resolveStateDbPath throws when no state schema matches", async () => {
   const root = await createCodexHome();
   createInvalidDb(join(root, "state_5.sqlite"));
 
-  expect(() => resolveStateDbPath(root)).toThrow("Codex state database not found");
+  expect(() => resolveStateDbPath(root)).toThrow("current Codex state database not found");
 });
 
-test("resolveLogsDbPath returns newest logs schema or null", async () => {
+test("resolveLogsDbPath uses the current logs_2 schema or returns null", async () => {
   const root = await createCodexHome();
   createLogsDb(join(root, "logs_2.sqlite"));
   createLogsDb(join(root, "logs_3.sqlite"));
 
-  expect(resolveLogsDbPath(root)).toBe(join(root, "logs_3.sqlite"));
+  expect(resolveLogsDbPath(root)).toBe(join(root, "logs_2.sqlite"));
   expect(resolveLogsDbPath(await createCodexHome())).toBeNull();
 });
 
@@ -55,7 +54,7 @@ async function createCodexHome(): Promise<string> {
 
 function createStateDb(path: string): void {
   withDb(path, (db) => {
-    db.run("CREATE TABLE threads (id TEXT, rollout_path TEXT, cwd TEXT, title TEXT, updated_at INTEGER, archived INTEGER)");
+    db.run("CREATE TABLE threads (id TEXT, rollout_path TEXT, cwd TEXT, git_origin_url TEXT, title TEXT, updated_at INTEGER, archived INTEGER)");
   });
 }
 

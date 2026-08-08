@@ -6,16 +6,12 @@ const MAIN_HELP = `${pc.bold("dexcow")} — a cow that eats your Codex sessions
 ${pc.bold("Usage:")}
   dexcow              Interactive picker (multiselect + delete)
   dexcow help         Show this help
-  dexcow ls           List all sessions
-  dexcow rm <id...>   Delete specific sessions by id
-  dexcow trash        List trashed rollout files
-  dexcow trash --empty Empty dexcow trash after confirmation
+  dexcow ls           List sessions shown in Codex
+  dexcow archived     Pick from archived sessions
+  dexcow rm <id...> --yes
+                      Permanently delete specific sessions by id
   dexcow -h, --help   Show this help
   dexcow -v, --version
-
-${pc.bold("Flags:")}
-  --hard              Delete rollout files instead of moving them to ${pc.dim("~/.codex/.dexcow-trash")}
-  --yes, -y           With trash --empty: skip confirmation
 
 ${pc.bold("Data source:")}
   ${pc.dim(describeStateDbPath())}
@@ -27,41 +23,38 @@ const COMMAND_HELP: Record<string, string> = {
 
 ${pc.bold("Usage:")}
   dexcow ls
+  dexcow ls --archived
 
-List Codex sessions known to the local state database.
+List active sessions shown in Codex. Use --archived to list archived sessions.
 `,
   list: `${pc.bold("dexcow ls")}
 
 ${pc.bold("Usage:")}
   dexcow ls
+  dexcow ls --archived
 
-List Codex sessions known to the local state database.
+List active sessions shown in Codex. Use --archived to list archived sessions.
+`,
+  archived: `${pc.bold("dexcow archived")}
+
+${pc.bold("Usage:")}
+  dexcow archived
+
+Open the interactive picker for sessions Codex has archived and hidden from its normal sidebar.
 `,
   rm: `${pc.bold("dexcow rm")}
 
 ${pc.bold("Usage:")}
-  dexcow rm <id...> [--hard]
+  dexcow rm <id...> --yes
 
-Delete specific sessions by id. By default, rollout files move to trash.
-Use --hard to permanently delete rollout files instead.
+Permanently delete specific sessions by id. The --yes flag is required.
 `,
   delete: `${pc.bold("dexcow rm")}
 
 ${pc.bold("Usage:")}
-  dexcow rm <id...> [--hard]
+  dexcow rm <id...> --yes
 
-Delete specific sessions by id. By default, rollout files move to trash.
-Use --hard to permanently delete rollout files instead.
-`,
-  trash: `${pc.bold("dexcow trash")}
-
-${pc.bold("Usage:")}
-  dexcow trash
-  dexcow trash --empty
-  dexcow trash --empty --yes
-
-List trashed rollout files, or empty dexcow trash after confirmation.
-Use --yes to skip confirmation in scripts.
+Permanently delete specific sessions by id. The --yes flag is required.
 `,
 };
 

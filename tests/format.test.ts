@@ -19,7 +19,7 @@ test("formatThreadLine shows the project name instead of the full cwd", () => {
   expect(line).not.toContain("/Users/queen/Projects/dexcow");
 });
 
-test("groupThreadsByProject clusters sessions by cwd and sorts recent repos first", () => {
+test("groupThreadsByProject clusters sessions by Git origin and sorts recent repos first", () => {
   const threads = [
     thread("/Users/queen/Projects/website", { id: "old-site", updatedAt: minutesAgo(120) }),
     thread("/Users/queen/Projects/dexcow", { id: "new-cow", updatedAt: minutesAgo(5) }),
@@ -58,12 +58,52 @@ test("formatThreadGroups displays full titles with status after the title", () =
 
 test("formatThreadGroupHeader disambiguates duplicate repo names", () => {
   const groups = groupThreadsByProject([
-    thread("/Users/queen/Projects/work/app", { id: "work" }),
-    thread("/Users/queen/Projects/personal/app", { id: "personal" }),
+    thread("/Users/queen/Projects/work/app", { id: "work", gitOriginUrl: "git@github.com:work/app.git" }),
+    thread("/Users/queen/Projects/personal/app", { id: "personal", gitOriginUrl: "git@github.com:personal/app.git" }),
   ]);
 
   expect(formatThreadGroupHeader(groups[0]!, groups)).toContain("/app");
   expect(formatThreadGroupHeader(groups[1]!, groups)).toContain("/app");
+});
+
+test("groupThreadsByProject collapses worktrees by canonical Git origin", () => {
+  const groups = groupThreadsByProject([
+    thread("/Users/queen/.codex/worktrees/one/repo", {
+      id: "one",
+      gitOriginUrl: "git@github.com:demo/repo.git",
+    }),
+    thread("/Users/queen/.codex/worktrees/two/repo", {
+      id: "two",
+      gitOriginUrl: "https://github.com/demo/repo",
+    }),
+    thread("/existing/repo", {
+      id: "repo",
+      gitOriginUrl: "git@github.com:demo/repo.git",
+    }),
+  ]);
+
+  expect(groups[0]).toMatchObject({
+    id: "repo:github.com/demo/repo",
+    kind: "project",
+    project: "repo",
+    cwd: "/existing/repo",
+  });
+  expect(groups[0]?.threads.map((item) => item.id).sort()).toEqual(["one", "repo", "two"]);
+});
+
+test("sessions without a Git origin are unlinked without colliding with a real repo", () => {
+  const groups = groupThreadsByProject([
+    thread("/existing/Unlinked sessions", {
+      id: "real",
+      gitOriginUrl: "git@github.com:demo/unlinked-sessions.git",
+    }),
+    thread("/removed/folder", { id: "missing", gitOriginUrl: "" }),
+  ]);
+
+  const real = groups.find((group) => group.kind === "project")!;
+  expect(groups[0]).toMatchObject({ id: "dexcow:unlinked", kind: "unlinked" });
+  expect(real.id).toBe("repo:github.com/demo/unlinked-sessions");
+  expect(formatThreadGroupHeader(real, groups)).toContain("existing/Unlinked sessions");
 });
 
 function thread(cwd: string, overrides: Partial<Thread> = {}): Thread {
@@ -72,6 +112,7 @@ function thread(cwd: string, overrides: Partial<Thread> = {}): Thread {
     title: "Clean up sessions",
     rolloutPath: "/Users/queen/.codex/sessions/rollout.jsonl",
     cwd,
+    gitOriginUrl: `git@github.com:demo/${projectName(cwd)}.git`,
     updatedAt: new Date(),
     archived: false,
     ...overrides,

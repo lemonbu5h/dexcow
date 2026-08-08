@@ -1,26 +1,35 @@
 import { Database } from "bun:sqlite";
 import { resolveLogsDbPath } from "./codexStores.ts";
+import { cleanDesktopStores } from "./desktopStores.ts";
 import { paths } from "./paths.ts";
+import { deleteRolloutFile } from "./rolloutFiles.ts";
+import { assertThreadsUnlocked, deleteShellSnapshots } from "./sessionArtifacts.ts";
 import { removeThreadNames } from "./sessionIndex.ts";
 import type { Thread } from "./threads.ts";
-import { hardDelete, moveToTrash } from "./trash.ts";
 
 export interface PurgeOptions {
-  hard: boolean;
   logsDbPath?: string;
   sessionIndexPath?: string;
-  sessionsRoot?: string;
-  trashRoot?: string;
+  rolloutRoots?: string[];
+  shellSnapshotsRoot?: string;
+  threadWriterLocksRoot?: string;
+  desktopDbPath?: string;
+  historySnapshotsDbPath?: string;
 }
 
 export interface PurgeResult {
   removed: number;
   missingFiles: number;
-  trashedFiles: number;
   deletedFiles: number;
   stateRows: number;
   logRows: number;
   sessionIndexRows: number;
+  catalogRows: number;
+  timelineRows: number;
+  automationRunRows: number;
+  inboxRows: number;
+  historySnapshotRows: number;
+  shellSnapshots: number;
 }
 
 interface StateCleanupResult {
@@ -30,11 +39,16 @@ interface StateCleanupResult {
 const EMPTY_RESULT: PurgeResult = {
   removed: 0,
   missingFiles: 0,
-  trashedFiles: 0,
   deletedFiles: 0,
   stateRows: 0,
   logRows: 0,
   sessionIndexRows: 0,
+  catalogRows: 0,
+  timelineRows: 0,
+  automationRunRows: 0,
+  inboxRows: 0,
+  historySnapshotRows: 0,
+  shellSnapshots: 0,
 };
 
 export async function purgeThreads(
@@ -46,19 +60,24 @@ export async function purgeThreads(
 
   const result = { ...EMPTY_RESULT, removed: threads.length };
   const ids = new Set(threads.map((t) => t.id));
+  assertThreadsUnlocked(ids, opts.threadWriterLocksRoot);
 
   for (const thread of threads) {
-    const fileResult = opts.hard
-      ? await hardDelete(thread.rolloutPath, { sessionsRoot: opts.sessionsRoot })
-      : await moveToTrash(thread.rolloutPath, { sessionsRoot: opts.sessionsRoot, trashRoot: opts.trashRoot });
-    if (fileResult === null || fileResult === false) {
+    const deleted = await deleteRolloutFile(thread.rolloutPath, { rolloutRoots: opts.rolloutRoots });
+    if (!deleted) {
       result.missingFiles++;
-    } else if (opts.hard) {
-      result.deletedFiles++;
     } else {
-      result.trashedFiles++;
+      result.deletedFiles++;
     }
   }
+
+  result.shellSnapshots = await deleteShellSnapshots(ids, opts.shellSnapshotsRoot);
+
+  const desktop = cleanDesktopStores(ids, {
+    desktopDbPath: opts.desktopDbPath,
+    historySnapshotsDbPath: opts.historySnapshotsDbPath,
+  });
+  Object.assign(result, desktop);
 
   result.stateRows = deleteStateRows(stateDb, ids).rows;
   result.logRows = deleteLogRows(ids, opts.logsDbPath ?? resolveLogsDbPath());
@@ -71,23 +90,14 @@ function deleteStateRows(db: Database, ids: Set<string>): StateCleanupResult {
   const cleanup = db.transaction((threadIds: string[]) => {
     let rows = 0;
     for (const id of threadIds) {
-      rows += runDeleteIfTableExists(db, "thread_dynamic_tools", "DELETE FROM thread_dynamic_tools WHERE thread_id = ?", id);
-      rows += runDeleteIfTableExists(db, "stage1_outputs", "DELETE FROM stage1_outputs WHERE thread_id = ?", id);
-      rows += runDeleteIfTableExists(
+      rows += runDelete(db, "DELETE FROM thread_dynamic_tools WHERE thread_id = ?", id);
+      rows += runDelete(
         db,
-        "thread_spawn_edges",
         "DELETE FROM thread_spawn_edges WHERE parent_thread_id = ? OR child_thread_id = ?",
         id,
         id,
       );
-      rows += runUpdateIfColumnExists(
-        db,
-        "agent_job_items",
-        "assigned_thread_id",
-        "UPDATE agent_job_items SET assigned_thread_id = NULL WHERE assigned_thread_id = ?",
-        id,
-      );
-      rows += runDeleteIfTableExists(db, "threads", "DELETE FROM threads WHERE id = ?", id);
+      rows += runDelete(db, "DELETE FROM threads WHERE id = ?", id);
     }
     return { rows };
   });
@@ -102,7 +112,7 @@ function deleteLogRows(ids: Set<string>, logsDbPath: string | null): number {
     db = new Database(logsDbPath, { create: false, readwrite: true });
     let rows = 0;
     for (const id of ids) {
-      rows += runDeleteIfTableExists(db, "logs", "DELETE FROM logs WHERE thread_id = ?", id);
+      rows += runDelete(db, "DELETE FROM logs WHERE thread_id = ?", id);
     }
     return rows;
   } catch (err) {
@@ -115,39 +125,6 @@ function deleteLogRows(ids: Set<string>, logsDbPath: string | null): number {
 
 function runDelete(db: Database, sql: string, ...params: string[]): number {
   return changes(db.query(sql).run(...params));
-}
-
-function runUpdate(db: Database, sql: string, ...params: string[]): number {
-  return changes(db.query(sql).run(...params));
-}
-
-function runDeleteIfTableExists(db: Database, table: string, sql: string, ...params: string[]): number {
-  if (!tableExists(db, table)) return 0;
-  return runDelete(db, sql, ...params);
-}
-
-function runUpdateIfColumnExists(
-  db: Database,
-  table: string,
-  column: string,
-  sql: string,
-  ...params: string[]
-): number {
-  if (!columnExists(db, table, column)) return 0;
-  return runUpdate(db, sql, ...params);
-}
-
-function tableExists(db: Database, table: string): boolean {
-  const row = db
-    .query("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ?")
-    .get(table) as { ok: number } | null;
-  return row !== null;
-}
-
-function columnExists(db: Database, table: string, column: string): boolean {
-  if (!tableExists(db, table)) return false;
-  const rows = db.query(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
-  return rows.some((row) => row.name === column);
 }
 
 function changes(result: unknown): number {

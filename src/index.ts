@@ -3,7 +3,7 @@ import { updateSettings } from "@clack/prompts";
 import pc from "picocolors";
 import { describeStateDbPath } from "./codexStores.ts";
 import { parseArgs } from "./args.ts";
-import { runInteractive, runList, runRemove, runTrash } from "./commands.ts";
+import { runInteractive, runList, runRemove } from "./commands.ts";
 import { helpFor } from "./help.ts";
 import { VERSION } from "./version.ts";
 
@@ -29,21 +29,21 @@ async function main(argv: string[]): Promise<void> {
     // Commands stay thin here; state access and destructive operations live in focused modules.
     switch (parsed.command) {
       case undefined:
-        await runInteractive({ hard: parsed.hard });
+        await runInteractive();
         return;
       case "help":
         console.log(helpFor(parsed.commandPositionals[0]));
         return;
       case "ls":
       case "list":
-        await runList();
+        await runList(parsed.archived ? "archived" : "active");
+        return;
+      case "archived":
+        await runInteractive("archived");
         return;
       case "rm":
       case "delete":
-        await runRemove(parsed.commandPositionals, { hard: parsed.hard });
-        return;
-      case "trash":
-        await runTrash(parsed.commandArgs);
+        await runRemove(parsed.commandPositionals, parsed.yes);
         return;
       default:
         console.error(pc.red(`unknown command: ${parsed.command}`));

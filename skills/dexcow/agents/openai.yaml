@@ -1,0 +1,4 @@
+interface:
+  display_name: "dexcow"
+  short_description: "Guide a safe Codex session cleanup"
+  default_prompt: "Use $dexcow to review my local Codex sessions and help me safely remove the ones I choose."
