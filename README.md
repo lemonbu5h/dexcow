@@ -66,7 +66,7 @@ dexcow help         # list commands
 dexcow ls           # list sessions shown in Codex
 dexcow archived     # clean up archived sessions
 dexcow ls --archived # list archived sessions
-dexcow rm <id>...   # permanently delete by id
+dexcow rm <id>... --yes  # permanently delete by id
 dexcow --version
 ```
 

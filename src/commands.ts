@@ -81,9 +81,13 @@ export async function runList(scope: ThreadScope = "active"): Promise<void> {
   }
 }
 
-export async function runRemove(ids: string[]): Promise<void> {
+export async function runRemove(ids: string[], confirmed: boolean): Promise<void> {
   if (ids.length === 0) {
-    console.error("usage: dexcow rm <id> [id...]");
+    console.error("usage: dexcow rm <id> [id...] --yes");
+    process.exit(2);
+  }
+  if (!confirmed) {
+    console.error("refusing permanent deletion without --yes");
     process.exit(2);
   }
   const db = openDb();

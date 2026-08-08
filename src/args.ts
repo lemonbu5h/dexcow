@@ -2,6 +2,7 @@ export interface ParsedArgs {
   command?: string;
   commandPositionals: string[];
   archived: boolean;
+  yes: boolean;
   help: boolean;
   version: boolean;
 }
@@ -15,6 +16,7 @@ export function parseArgs(args: string[]): ParsedArgs {
     command,
     commandPositionals: commandArgs.filter(isPositional),
     archived: args.includes("--archived"),
+    yes: args.includes("--yes") || args.includes("-y"),
     help: args.includes("-h") || args.includes("--help"),
     version: args.includes("-v") || args.includes("--version"),
   };

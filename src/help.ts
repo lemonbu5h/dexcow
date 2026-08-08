@@ -8,7 +8,8 @@ ${pc.bold("Usage:")}
   dexcow help         Show this help
   dexcow ls           List sessions shown in Codex
   dexcow archived     Pick from archived sessions
-  dexcow rm <id...>   Permanently delete specific sessions by id
+  dexcow rm <id...> --yes
+                      Permanently delete specific sessions by id
   dexcow -h, --help   Show this help
   dexcow -v, --version
 
@@ -44,16 +45,16 @@ Open the interactive picker for sessions Codex has archived and hidden from its 
   rm: `${pc.bold("dexcow rm")}
 
 ${pc.bold("Usage:")}
-  dexcow rm <id...>
+  dexcow rm <id...> --yes
 
-Permanently delete specific sessions by id.
+Permanently delete specific sessions by id. The --yes flag is required.
 `,
   delete: `${pc.bold("dexcow rm")}
 
 ${pc.bold("Usage:")}
-  dexcow rm <id...>
+  dexcow rm <id...> --yes
 
-Permanently delete specific sessions by id.
+Permanently delete specific sessions by id. The --yes flag is required.
 `,
 };
 

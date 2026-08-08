@@ -20,3 +20,8 @@ test("parseArgs recognizes the archived session scope", () => {
   const parsed = parseArgs(["ls", "--archived"]);
   expect(parsed.archived).toBe(true);
 });
+
+test("parseArgs recognizes explicit deletion confirmation", () => {
+  expect(parseArgs(["rm", "thread-1", "--yes"]).yes).toBe(true);
+  expect(parseArgs(["rm", "thread-1", "-y"]).yes).toBe(true);
+});

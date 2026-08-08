@@ -43,7 +43,7 @@ async function main(argv: string[]): Promise<void> {
         return;
       case "rm":
       case "delete":
-        await runRemove(parsed.commandPositionals);
+        await runRemove(parsed.commandPositionals, parsed.yes);
         return;
       default:
         console.error(pc.red(`unknown command: ${parsed.command}`));
