@@ -7,6 +7,7 @@ export interface Thread {
   title: string;
   rolloutPath: string;
   cwd: string;
+  gitOriginUrl: string;
   updatedAt: Date;
   archived: boolean;
 }
@@ -16,24 +17,32 @@ interface ThreadRow {
   title: string;
   rollout_path: string;
   cwd: string;
+  git_origin_url: string;
   updated_at: number;
   archived: number;
 }
 
-const SELECT_ALL = `
-  SELECT id, title, rollout_path, cwd, updated_at, archived
+const SELECT_THREADS = `
+  SELECT id, title, rollout_path, cwd, git_origin_url, updated_at, archived
   FROM threads
-  ORDER BY updated_at DESC, id DESC
 `;
+
+export type ThreadScope = "active" | "archived" | "all";
+
+export interface ListThreadOptions {
+  scope?: ThreadScope;
+  sessionIndexPath?: string;
+}
 
 export function openDb(stateDbPath = resolveStateDbPath()): Database {
   return new Database(stateDbPath, { create: false, readwrite: true });
 }
 
-export async function listThreads(db: Database, sessionIndexPath?: string): Promise<Thread[]> {
+export async function listThreads(db: Database, opts: ListThreadOptions = {}): Promise<Thread[]> {
   // The database owns deletion state; session_index.jsonl only improves the title shown to users.
-  const names = await loadThreadNames(sessionIndexPath);
-  return db.query(SELECT_ALL).all().map((r) => toThread(r, names));
+  const names = await loadThreadNames(opts.sessionIndexPath);
+  const where = opts.scope === "archived" ? "WHERE archived = 1" : opts.scope === "all" ? "" : "WHERE archived = 0";
+  return db.query(`${SELECT_THREADS} ${where} ORDER BY updated_at DESC, id DESC`).all().map((r) => toThread(r, names));
 }
 
 function toThread(raw: unknown, names: ThreadNameMap): Thread {
@@ -43,6 +52,7 @@ function toThread(raw: unknown, names: ThreadNameMap): Thread {
     title: resolveTitle(r.id, r.title, names),
     rolloutPath: r.rollout_path,
     cwd: r.cwd,
+    gitOriginUrl: r.git_origin_url,
     updatedAt: new Date(r.updated_at * 1000),
     archived: r.archived === 1,
   };

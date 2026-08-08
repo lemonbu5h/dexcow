@@ -1,8 +1,7 @@
 #!/usr/bin/env bun
 import { parseArgs } from "./args.ts";
 import { purgeThreads, type PurgeResult } from "./purge.ts";
-import { emptyTrash, inspectTrash, type TrashSummary } from "./trash.ts";
-import { listThreads, openDb, type Thread } from "./threads.ts";
+import { listThreads, openDb, type Thread, type ThreadScope } from "./threads.ts";
 
 interface AgentSession {
   id: string;
@@ -14,14 +13,11 @@ interface AgentSession {
 
 interface AgentOptions {
   confirm: boolean;
-  confirmHard: boolean;
 }
 
 export interface AgentDependencies {
-  loadSessions(): Promise<Thread[]>;
-  purge(sessions: Thread[], options: { hard: boolean }): Promise<PurgeResult>;
-  inspectTrash(): Promise<TrashSummary>;
-  emptyTrash(): Promise<TrashSummary>;
+  loadSessions(scope?: ThreadScope): Promise<Thread[]>;
+  purge(sessions: Thread[]): Promise<PurgeResult>;
   write(value: unknown): void;
 }
 
@@ -33,12 +29,7 @@ export async function runAgent(argv: string[], dependencies: AgentDependencies =
 
   if (parsed.help || parsed.command === undefined || parsed.command === "help") {
     dependencies.write({
-      commands: [
-        "list",
-        "purge <id...> --confirm [--hard --confirm-hard]",
-        "trash",
-        "trash --empty --confirm",
-      ],
+      commands: ["list [--archived]", "purge <id...> --confirm"],
       safety: "List first, show the selected sessions, and obtain explicit user confirmation before destructive commands.",
     });
     return;
@@ -46,60 +37,40 @@ export async function runAgent(argv: string[], dependencies: AgentDependencies =
 
   switch (parsed.command) {
     case "list":
-      await listSessions(dependencies);
+      await listSessions(parsed.archived ? "archived" : "active", dependencies);
       return;
     case "purge":
-      await purgeSessions(parsed.commandPositionals, parsed.hard, options, dependencies);
-      return;
-    case "trash":
-      await manageTrash(parsed.commandArgs, options, dependencies);
+      await purgeSessions(parsed.commandPositionals, options, dependencies);
       return;
     default:
       throw new Error(`unknown command: ${parsed.command}`);
   }
 }
 
-async function listSessions(dependencies: AgentDependencies): Promise<void> {
-  const sessions = await dependencies.loadSessions();
-  dependencies.write({ operation: "list", sessions: sessions.map(sessionForAgent) });
+async function listSessions(scope: ThreadScope, dependencies: AgentDependencies): Promise<void> {
+  const sessions = await dependencies.loadSessions(scope);
+  dependencies.write({ operation: "list", scope, sessions: sessions.map(sessionForAgent) });
 }
 
-async function purgeSessions(ids: string[], hard: boolean, options: AgentOptions, dependencies: AgentDependencies): Promise<void> {
-  requirePurgeConfirmation(ids, hard, options);
-  const selected = selectSessions(await dependencies.loadSessions(), ids);
-  const result = await dependencies.purge(selected, { hard });
+async function purgeSessions(ids: string[], options: AgentOptions, dependencies: AgentDependencies): Promise<void> {
+  requirePurgeConfirmation(ids, options);
+  const selected = selectSessions(await dependencies.loadSessions("all"), ids);
+  const result = await dependencies.purge(selected);
   dependencies.write({
     operation: "purge",
-    mode: hard ? "hard" : "trash",
+    mode: "delete",
     sessions: selected.map(sessionForAgent),
     result,
     refresh: REFRESH_NOTE,
   });
 }
 
-async function manageTrash(args: string[], options: AgentOptions, dependencies: AgentDependencies): Promise<void> {
-  const empty = args.includes("--empty");
-  if (!empty) {
-    dependencies.write({ operation: "trash", summary: await dependencies.inspectTrash() });
-    return;
-  }
-
-  if (!options.confirm) {
-    throw new Error("emptying trash requires --confirm after explicit user confirmation");
-  }
-
-  dependencies.write({ operation: "trash-empty", result: await dependencies.emptyTrash() });
-}
-
-export function requirePurgeConfirmation(ids: string[], hard: boolean, options: AgentOptions): void {
+export function requirePurgeConfirmation(ids: string[], options: AgentOptions): void {
   if (ids.length === 0) {
-    throw new Error("usage: dexcow-agent purge <id...> --confirm [--hard --confirm-hard]");
+    throw new Error("usage: dexcow-agent purge <id...> --confirm");
   }
   if (!options.confirm) {
     throw new Error("purging requires --confirm after explicit user confirmation");
-  }
-  if (hard && !options.confirmHard) {
-    throw new Error("hard purging requires --confirm-hard after a separate explicit user confirmation");
   }
 }
 
@@ -116,7 +87,6 @@ export function selectSessions(sessions: Thread[], ids: string[]): Thread[] {
 function confirmationOptions(argv: string[]): AgentOptions {
   return {
     confirm: argv.includes("--confirm"),
-    confirmHard: argv.includes("--confirm-hard"),
   };
 }
 
@@ -132,25 +102,23 @@ function sessionForAgent(session: Thread): AgentSession {
 
 const defaultDependencies: AgentDependencies = {
   loadSessions: loadLocalSessions,
-  async purge(sessions, options): Promise<PurgeResult> {
+  async purge(sessions): Promise<PurgeResult> {
     const db = openDb();
     try {
-      return await purgeThreads(db, sessions, options);
+      return await purgeThreads(db, sessions, {});
     } finally {
       db.close();
     }
   },
-  inspectTrash,
-  emptyTrash,
   write(value: unknown): void {
     console.log(JSON.stringify(value, null, 2));
   },
 };
 
-async function loadLocalSessions(): Promise<Thread[]> {
+async function loadLocalSessions(scope: ThreadScope = "active"): Promise<Thread[]> {
   const db = openDb();
   try {
-    return await listThreads(db);
+    return await listThreads(db, { scope });
   } finally {
     db.close();
   }

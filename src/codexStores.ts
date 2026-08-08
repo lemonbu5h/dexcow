@@ -1,13 +1,10 @@
 import { Database } from "bun:sqlite";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "./paths.ts";
 
-const STATE_DB_PATTERN = /^state_(\d+)\.sqlite$/;
-const LOGS_DB_PATTERN = /^logs_(\d+)\.sqlite$/;
-
 const STATE_SCHEMA = {
-  threads: ["id", "rollout_path", "cwd", "title", "updated_at", "archived"],
+  threads: ["id", "rollout_path", "cwd", "git_origin_url", "title", "updated_at", "archived"],
 } as const;
 
 const LOGS_SCHEMA = {
@@ -15,60 +12,26 @@ const LOGS_SCHEMA = {
 } as const;
 
 export function resolveStateDbPath(codexHome = paths.codexHome): string {
-  const match = findSchemaDb(codexHome, STATE_DB_PATTERN, join(codexHome, "state_5.sqlite"), STATE_SCHEMA);
-  if (match) return match;
-  throw new Error(`Codex state database not found under ${codexHome}`);
+  const stateDbPath = join(codexHome, "state_5.sqlite");
+  if (matchesSchema(stateDbPath, STATE_SCHEMA)) return stateDbPath;
+  throw new Error(`current Codex state database not found: ${stateDbPath}`);
 }
 
 export function describeStateDbPath(codexHome = paths.codexHome): string {
   try {
     return resolveStateDbPath(codexHome);
   } catch {
-    return join(codexHome, "state_*.sqlite");
+    return join(codexHome, "state_5.sqlite");
   }
 }
 
 export function resolveLogsDbPath(codexHome = paths.codexHome): string | null {
-  return findSchemaDb(codexHome, LOGS_DB_PATTERN, join(codexHome, "logs_2.sqlite"), LOGS_SCHEMA);
-}
-
-function findSchemaDb(
-  codexHome: string,
-  pattern: RegExp,
-  fallbackPath: string,
-  schema: Record<string, readonly string[]>,
-): string | null {
-  for (const candidate of sqliteCandidates(codexHome, pattern, fallbackPath)) {
-    if (matchesSchema(candidate, schema)) return candidate;
-  }
-  return null;
-}
-
-function sqliteCandidates(codexHome: string, pattern: RegExp, fallbackPath: string): string[] {
-  const candidates = new Map<string, number>();
-
-  try {
-    for (const entry of readdirSync(codexHome, { withFileTypes: true })) {
-      if (!entry.isFile()) continue;
-      const match = pattern.exec(entry.name);
-      if (!match) continue;
-      candidates.set(join(codexHome, entry.name), Number(match[1]));
-    }
-  } catch {
-    return existsSync(fallbackPath) ? [fallbackPath] : [];
-  }
-
-  if (existsSync(fallbackPath) && !candidates.has(fallbackPath)) {
-    candidates.set(fallbackPath, suffixVersion(fallbackPath, pattern));
-  }
-
-  return Array.from(candidates.entries())
-    .filter(([path]) => isRegularFile(path))
-    .sort((a, b) => b[1] - a[1])
-    .map(([path]) => path);
+  const logsDbPath = join(codexHome, "logs_2.sqlite");
+  return matchesSchema(logsDbPath, LOGS_SCHEMA) ? logsDbPath : null;
 }
 
 function matchesSchema(path: string, schema: Record<string, readonly string[]>): boolean {
+  if (!existsSync(path)) return false;
   let db: Database | null = null;
   try {
     db = new Database(path, { create: false, readonly: true });
@@ -91,18 +54,4 @@ function tableExists(db: Database, table: string): boolean {
     .query("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ?")
     .get(table) as { ok: number } | null;
   return row !== null;
-}
-
-function isRegularFile(path: string): boolean {
-  try {
-    return statSync(path).isFile();
-  } catch {
-    return false;
-  }
-}
-
-function suffixVersion(path: string, pattern: RegExp): number {
-  const name = path.split("/").at(-1) ?? "";
-  const match = pattern.exec(name);
-  return match ? Number(match[1]) : -1;
 }

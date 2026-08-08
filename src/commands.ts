@@ -1,9 +1,7 @@
 import * as p from "@clack/prompts";
 import pc from "picocolors";
-import { paths } from "./paths.ts";
 import { purgeThreads, type PurgeResult } from "./purge.ts";
-import { listThreads, openDb, type Thread } from "./threads.ts";
-import { emptyTrash, inspectTrash, type TrashSummary } from "./trash.ts";
+import { listThreads, openDb, type Thread, type ThreadScope } from "./threads.ts";
 import {
   formatThreadGroups,
   groupThreadsByProject,
@@ -11,21 +9,18 @@ import {
   projectName,
   relativeTime,
   shortenCwd,
+  threadGroupLabel,
   truncate,
 } from "./format.ts";
 
-export interface DeleteOptions {
-  hard: boolean;
-}
-
-export async function runInteractive(opts: DeleteOptions): Promise<void> {
+export async function runInteractive(scope: ThreadScope = "active"): Promise<void> {
   p.intro(pc.bgMagenta(pc.black(" dexcow ")) + pc.dim(" cow eats Codex sessions"));
 
   const db = openDb();
   try {
-    const threads = await listThreads(db);
+    const threads = await listThreads(db, { scope });
     if (threads.length === 0) {
-      p.note("No Codex sessions found.", "empty");
+      p.note(scope === "archived" ? "No archived Codex sessions found." : "No Codex sessions found.", "empty");
       p.outro("nothing to eat 🐄");
       return;
     }
@@ -37,7 +32,7 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
     }
 
     const picked = await p.multiselect<string>({
-      message: `Pick sessions to ${opts.hard ? pc.red("PURGE") : "trash"} (space toggles, enter continues, q exits)`,
+      message: "Pick sessions to delete (space toggles, enter continues, q exits)",
       options: target.threads.map((thread) => ({
         value: thread.id,
         label: renderSessionOptionLabel(thread),
@@ -53,11 +48,10 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
 
     const ids = new Set(picked);
     const chosen = threads.filter((t) => ids.has(t.id));
-    const verb = opts.hard ? "permanently delete" : `move to ${pc.cyan(shortenCwd(paths.trash))}`;
     p.note(chosen.map(renderChosenLine).join("\n"), "selected");
     const confirmed = await p.confirm({
-      message: `${verb} ${pc.bold(String(chosen.length))} session(s)?`,
-      active: opts.hard ? "Yes, purge" : "Yes, trash",
+      message: `permanently delete ${pc.bold(String(chosen.length))} session(s)?`,
+      active: "Yes, delete",
       inactive: "No, keep",
       initialValue: false,
     });
@@ -66,17 +60,17 @@ export async function runInteractive(opts: DeleteOptions): Promise<void> {
       return;
     }
 
-    const result = await purgeThreads(db, chosen, opts);
-    p.outro(summarize(result, opts) + trashLocation(result, opts) + refreshNote());
+    const result = await purgeThreads(db, chosen, {});
+    p.outro(summarize(result) + refreshNote());
   } finally {
     db.close();
   }
 }
 
-export async function runList(): Promise<void> {
+export async function runList(scope: ThreadScope = "active"): Promise<void> {
   const db = openDb();
   try {
-    const threads = await listThreads(db);
+    const threads = await listThreads(db, { scope });
     if (threads.length === 0) {
       console.log("(no sessions)");
       return;
@@ -87,14 +81,14 @@ export async function runList(): Promise<void> {
   }
 }
 
-export async function runRemove(ids: string[], opts: DeleteOptions): Promise<void> {
+export async function runRemove(ids: string[]): Promise<void> {
   if (ids.length === 0) {
-    console.error("usage: dexcow rm <id> [id...] [--hard]");
+    console.error("usage: dexcow rm <id> [id...]");
     process.exit(2);
   }
   const db = openDb();
   try {
-    const threads = await listThreads(db);
+    const threads = await listThreads(db, { scope: "all" });
     const byId = new Map(threads.map((t) => [t.id, t]));
     const chosen: Thread[] = [];
     for (const id of ids) {
@@ -105,61 +99,29 @@ export async function runRemove(ids: string[], opts: DeleteOptions): Promise<voi
       }
       chosen.push(t);
     }
-    const result = await purgeThreads(db, chosen, opts);
-    console.log(summarize(result, opts) + trashLocation(result, opts) + refreshNote());
+    const result = await purgeThreads(db, chosen, {});
+    console.log(summarize(result) + refreshNote());
   } finally {
     db.close();
   }
 }
 
-export async function runTrash(args: string[]): Promise<void> {
-  const empty = args.includes("--empty");
-  const yes = args.includes("--yes") || args.includes("-y");
-
-  if (!empty) {
-    console.log(formatTrashSummary(await inspectTrash()));
-    return;
-  }
-
-  const summary = await inspectTrash();
-  if (summary.files === 0) {
-    console.log(formatTrashSummary(summary));
-    return;
-  }
-
-  if (!yes) {
-    const confirmed = await p.confirm({
-      message: `permanently delete ${pc.bold(String(summary.files))} trashed rollout file(s), ${formatBytes(summary.bytes)}?`,
-      active: "Yes, empty trash",
-      inactive: "No, keep",
-      initialValue: false,
-    });
-    if (!confirmed || p.isCancel(confirmed)) {
-      exitCleanly("kept trash; no files deleted");
-      return;
-    }
-  }
-
-  const deleted = await emptyTrash();
-  console.log(`emptied trash (${deleted.files} file(s), ${formatBytes(deleted.bytes)})`);
-}
-
-function summarize(r: PurgeResult, opts: DeleteOptions): string {
-  const verb = opts.hard ? "purged" : "trashed";
-  const main = `${verb} ${r.removed} session(s)`;
+function summarize(r: PurgeResult): string {
+  const main = `deleted ${r.removed} session(s)`;
   const details = [
     `${r.stateRows} state row(s)`,
     `${r.logRows} log row(s)`,
     `${r.sessionIndexRows} index row(s)`,
   ];
+  if (r.catalogRows > 0) details.push(`${r.catalogRows} catalog row(s)`);
+  if (r.timelineRows > 0) details.push(`${r.timelineRows} timeline row(s)`);
+  if (r.historySnapshotRows > 0) details.push(`${r.historySnapshotRows} history snapshot(s)`);
+  if (r.automationRunRows > 0) details.push(`${r.automationRunRows} automation run(s)`);
+  if (r.inboxRows > 0) details.push(`${r.inboxRows} inbox item(s)`);
+  if (r.shellSnapshots > 0) details.push(`${r.shellSnapshots} shell snapshot(s)`);
   if (r.missingFiles > 0) details.push(`${r.missingFiles} rollout file(s) already missing`);
   const note = pc.dim(` (${details.join(", ")})`);
   return main + note;
-}
-
-function trashLocation(r: PurgeResult, opts: DeleteOptions): string {
-  if (opts.hard || r.trashedFiles === 0) return "";
-  return pc.dim(`\ntrash: ${shortenCwd(paths.trash)}`);
 }
 
 function refreshNote(): string {
@@ -175,20 +137,21 @@ async function pickInteractiveGroup(threads: Thread[]): Promise<ThreadGroup | sy
   if (groups.length === 1) return groups[0]!;
 
   const chosen = await p.select<string>({
-    message: "Pick a repo",
+    message: "Pick a repo or unlinked sessions",
     options: groups.map((group) => ({
-      value: group.cwd,
-      label: renderRepoOptionLabel(group),
+      value: group.id,
+      label: renderRepoOptionLabel(group, groups),
     })),
     maxItems: 12,
   });
 
   if (p.isCancel(chosen)) return chosen;
-  return groups.find((group) => group.cwd === chosen) ?? groups[0]!;
+  return groups.find((group) => group.id === chosen) ?? groups[0]!;
 }
 
-function renderRepoOptionLabel(group: ThreadGroup): string {
-  const name = truncate(group.project, 28).padEnd(28);
+function renderRepoOptionLabel(group: ThreadGroup, allGroups: ThreadGroup[]): string {
+  const displayName = threadGroupLabel(group, allGroups);
+  const name = truncate(displayName, 28).padEnd(28);
   const count = `${group.threads.length} session${group.threads.length === 1 ? "" : "s"}`;
   const latest = relativeTime(group.threads[0]?.updatedAt ?? new Date()).padStart(4);
   return `${name}  ${count.padEnd(10)}  latest ${latest}`;
@@ -203,30 +166,4 @@ function renderSessionOptionLabel(t: Thread): string {
 
 function renderChosenLine(t: Thread): string {
   return `${projectName(t.cwd)} - ${truncate(t.title, 72)}`;
-}
-
-function formatTrashSummary(summary: TrashSummary): string {
-  if (summary.files === 0) return `trash empty (${shortenCwd(summary.root)})`;
-
-  const lines = [
-    `trash: ${shortenCwd(summary.root)}`,
-    `total: ${summary.files} file(s), ${formatBytes(summary.bytes)}`,
-  ];
-  for (const bucket of summary.buckets) {
-    lines.push(`${bucket.name}  ${String(bucket.files).padStart(4)} file(s)  ${formatBytes(bucket.bytes)}`);
-  }
-  return lines.join("\n");
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB", "TB"];
-  let value = bytes / 1024;
-  let unit = units[0];
-  for (const next of units.slice(1)) {
-    if (value < 1024) break;
-    value /= 1024;
-    unit = next;
-  }
-  return `${value.toFixed(value >= 10 ? 0 : 1)} ${unit}`;
 }
