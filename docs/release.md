@@ -22,11 +22,10 @@
    git config --global tag.gpgSign true
    ```
 
-6. Create and verify the signed tag from `main`:
+6. Create and push the signed tag from `main`:
 
    ```bash
    git tag -s v0.2.0 -m "release: v0.2.0"
-   git tag -v v0.2.0
    git push origin v0.2.0
    ```
 
