@@ -1,11 +1,11 @@
 ---
 name: dexcow
-description: Safely inspect and remove local Codex sessions using the bundled agent runner. Use when a user asks to list, clean up, trash, permanently purge, or recover space from local Codex sessions without using the interactive terminal UI.
+description: Safely inspect and permanently remove local Codex sessions using the bundled agent runner. Use when a user asks to list, clean up, delete, purge, or recover space from local Codex sessions without using the interactive terminal UI.
 ---
 
 # Dexcow
 
-Use `bin/dexcow-agent.js` for every operation. It shares dexcow's tested session discovery, purge, trash, and storage handling, but does not require the `dexcow` CLI/TUI to be installed.
+Use `bin/dexcow-agent.js` for every operation. It shares dexcow's tested session discovery, purge, and storage handling, but does not require the `dexcow` CLI/TUI to be installed.
 
 Run the bundled runner with Bun from this skill directory:
 
@@ -23,39 +23,23 @@ bun bin/dexcow-agent.js <command>
 
    Summarize the relevant repositories and sessions. Do not expose rollout paths unless the user asks.
 
-2. Make the proposed selection explicit. State the session titles, ids, and whether the default trash flow or permanent purge will be used.
+   If the user explicitly asks to clean up sessions hidden from the normal Codex sidebar, list archived sessions separately:
+
+   ```bash
+   bun bin/dexcow-agent.js list --archived
+   ```
+
+2. Make the proposed selection explicit. State the session titles and ids, and explain that deletion is permanent.
 
 3. Obtain an explicit confirmation after showing that selection. Never treat an earlier broad request such as "clean up my sessions" as confirmation for a specific set of sessions.
 
-4. Move selected sessions to trash by default.
+4. Permanently delete the selected sessions.
 
    ```bash
    bun bin/dexcow-agent.js purge <id...> --confirm
    ```
 
-5. Report the structured result, including the trash location when applicable. Tell the user to refresh Codex if old sessions still appear; collapsing and expanding the repo usually refreshes the list.
-
-## Permanent Purge
-
-Use permanent deletion only when the user explicitly asks for it after seeing the selected sessions. Ask for a separate confirmation that the rollout files will bypass trash, then run:
-
-```bash
-bun bin/dexcow-agent.js purge <id...> --hard --confirm --confirm-hard
-```
-
-## Trash
-
-Inspect trash with:
-
-```bash
-bun bin/dexcow-agent.js trash
-```
-
-Show the file count and size before offering to empty it. After explicit confirmation, run:
-
-```bash
-bun bin/dexcow-agent.js trash --empty --confirm
-```
+5. Report the structured result. Tell the user to refresh Codex if old sessions still appear; collapsing and expanding the repo usually refreshes the list.
 
 ## Boundaries
 
