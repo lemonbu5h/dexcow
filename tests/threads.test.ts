@@ -13,15 +13,27 @@ afterEach(async () => {
   }
 });
 
-test("listThreads resolves indexed names and readable fallback titles", async () => {
+test("listThreads defaults to active sessions and resolves readable titles", async () => {
   const fixture = await createFixture();
   const db = new Database(fixture.stateDbPath, { create: false, readwrite: true });
   try {
-    const threads = await listThreads(db, fixture.sessionIndexPath);
+    const threads = await listThreads(db, { sessionIndexPath: fixture.sessionIndexPath });
 
     expect(threads).toEqual([
-      expect.objectContaining({ id: "thread-2", title: "Indexed title", archived: true }),
       expect.objectContaining({ id: "thread-1", title: "Read this first", archived: false }),
+    ]);
+  } finally {
+    db.close();
+  }
+});
+
+test("listThreads exposes archived sessions only when requested", async () => {
+  const fixture = await createFixture();
+  const db = new Database(fixture.stateDbPath, { create: false, readwrite: true });
+  try {
+    const threads = await listThreads(db, { scope: "archived", sessionIndexPath: fixture.sessionIndexPath });
+    expect(threads).toEqual([
+      expect.objectContaining({ id: "thread-2", title: "Indexed title", archived: true }),
     ]);
   } finally {
     db.close();
@@ -45,9 +57,9 @@ async function createFixture(): Promise<{ stateDbPath: string; sessionIndexPath:
   const sessionIndexPath = join(root, "session_index.jsonl");
   const db = new Database(stateDbPath, { create: true, readwrite: true });
   try {
-    db.run("CREATE TABLE threads (id TEXT PRIMARY KEY, rollout_path TEXT NOT NULL, cwd TEXT NOT NULL, title TEXT NOT NULL, updated_at INTEGER NOT NULL, archived INTEGER NOT NULL)");
-    db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?)").run("thread-1", "/tmp/one.jsonl", "/tmp/demo", "[Read this first](https://example.com)\nMore detail", 1, 0);
-    db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?)").run("thread-2", "/tmp/two.jsonl", "/tmp/demo", "Ignored title", 2, 1);
+    db.run("CREATE TABLE threads (id TEXT PRIMARY KEY, rollout_path TEXT NOT NULL, cwd TEXT NOT NULL, git_origin_url TEXT NOT NULL, title TEXT NOT NULL, updated_at INTEGER NOT NULL, archived INTEGER NOT NULL)");
+    db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?, ?)").run("thread-1", "/tmp/one.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "[Read this first](https://example.com)\nMore detail", 1, 0);
+    db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?, ?)").run("thread-2", "/tmp/two.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "Ignored title", 2, 1);
   } finally {
     db.close();
   }

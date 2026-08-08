@@ -1,7 +1,6 @@
 import { expect, spyOn, test } from "bun:test";
 import { requirePurgeConfirmation, runAgent, selectSessions, type AgentDependencies } from "../src/agent.ts";
 import type { PurgeResult } from "../src/purge.ts";
-import type { TrashSummary } from "../src/trash.ts";
 import type { Thread } from "../src/threads.ts";
 
 test("agent help describes the structured commands", async () => {
@@ -11,12 +10,7 @@ test("agent help describes the structured commands", async () => {
 
   expect(fixture.output).toEqual([
     {
-      commands: [
-        "list",
-        "purge <id...> --confirm [--hard --confirm-hard]",
-        "trash",
-        "trash --empty --confirm",
-      ],
+      commands: ["list [--archived]", "purge <id...> --confirm"],
       safety: "List first, show the selected sessions, and obtain explicit user confirmation before destructive commands.",
     },
   ]);
@@ -27,8 +21,8 @@ test("agent default writer emits JSON help without opening Codex stores", async 
   try {
     await runAgent(["help"]);
     const help = JSON.parse(String(log.mock.calls[0]?.[0])) as { commands: string[] };
-    expect(help.commands).toContain("list");
-    expect(help.commands).toContain("purge <id...> --confirm [--hard --confirm-hard]");
+    expect(help.commands).toContain("list [--archived]");
+    expect(help.commands).toContain("purge <id...> --confirm");
   } finally {
     log.mockRestore();
   }
@@ -41,12 +35,25 @@ test("agent lists sessions as structured data", async () => {
 
   expect(fixture.output[0]).toMatchObject({
     operation: "list",
+    scope: "active",
     sessions: [{ id: "thread-1", title: "Demo session", cwd: "/tmp/demo", archived: false }],
   });
 });
 
+test("agent lists archived sessions only when requested", async () => {
+  const fixture = createFixture();
+
+  await runAgent(["list", "--archived"], fixture.dependencies);
+
+  expect(fixture.output[0]).toMatchObject({
+    operation: "list",
+    scope: "archived",
+    sessions: [{ id: "thread-2", archived: true }],
+  });
+});
+
 test("agent purge requires explicit confirmation", () => {
-  expect(() => requirePurgeConfirmation(["thread-1"], false, { confirm: false, confirmHard: false })).toThrow(
+  expect(() => requirePurgeConfirmation(["thread-1"], { confirm: false })).toThrow(
     "purging requires --confirm",
   );
 });
@@ -56,28 +63,13 @@ test("agent purges selected sessions only after confirmation", async () => {
 
   await runAgent(["purge", "thread-1", "--confirm"], fixture.dependencies);
 
-  expect(fixture.purgeCalls).toEqual([{ ids: ["thread-1"], hard: false }]);
+  expect(fixture.purgeCalls).toEqual([{ ids: ["thread-1"] }]);
   expect(fixture.output[0]).toMatchObject({
     operation: "purge",
-    mode: "trash",
+    mode: "delete",
     sessions: [{ id: "thread-1" }],
     result: { removed: 1 },
   });
-});
-
-test("agent hard purge requires a second confirmation", () => {
-  expect(() => requirePurgeConfirmation(["thread-1"], true, { confirm: true, confirmHard: false })).toThrow(
-    "hard purging requires --confirm-hard",
-  );
-});
-
-test("agent hard purge records the requested mode", async () => {
-  const fixture = createFixture();
-
-  await runAgent(["purge", "thread-1", "--confirm", "--hard", "--confirm-hard"], fixture.dependencies);
-
-  expect(fixture.purgeCalls).toEqual([{ ids: ["thread-1"], hard: true }]);
-  expect(fixture.output[0]).toMatchObject({ operation: "purge", mode: "hard" });
 });
 
 test("agent session selection rejects unknown ids before purging", () => {
@@ -86,61 +78,51 @@ test("agent session selection rejects unknown ids before purging", () => {
   );
 });
 
-test("agent lists and empties trash only after confirmation", async () => {
-  const fixture = createFixture();
-
-  await runAgent(["trash"], fixture.dependencies);
-  await expect(runAgent(["trash", "--empty"], fixture.dependencies)).rejects.toThrow("emptying trash requires --confirm");
-  await runAgent(["trash", "--empty", "--confirm"], fixture.dependencies);
-
-  expect(fixture.output).toEqual([
-    { operation: "trash", summary: fixture.trashSummary },
-    { operation: "trash-empty", result: fixture.trashSummary },
-  ]);
-});
-
 function createFixture() {
   const output: unknown[] = [];
-  const purgeCalls: Array<{ ids: string[]; hard: boolean }> = [];
-  const sessions = [thread("thread-1")];
-  const trashSummary: TrashSummary = { root: "/tmp/.dexcow-trash", files: 1, bytes: 12, buckets: [] };
+  const purgeCalls: Array<{ ids: string[] }> = [];
+  const activeSessions = [thread("thread-1")];
+  const archivedSessions = [thread("thread-2", { archived: true })];
   const purgeResult: PurgeResult = {
     removed: 1,
     stateRows: 1,
     logRows: 0,
     sessionIndexRows: 0,
-    trashedFiles: 1,
-    deletedFiles: 0,
+    deletedFiles: 1,
     missingFiles: 0,
+    catalogRows: 0,
+    timelineRows: 0,
+    automationRunRows: 0,
+    inboxRows: 0,
+    historySnapshotRows: 0,
+    shellSnapshots: 0,
   };
   const dependencies: AgentDependencies = {
-    async loadSessions() {
-      return sessions;
+    async loadSessions(scope = "active") {
+      if (scope === "archived") return archivedSessions;
+      if (scope === "all") return [...activeSessions, ...archivedSessions];
+      return activeSessions;
     },
-    async purge(selected, options) {
-      purgeCalls.push({ ids: selected.map((session) => session.id), hard: options.hard });
+    async purge(selected) {
+      purgeCalls.push({ ids: selected.map((session) => session.id) });
       return purgeResult;
-    },
-    async inspectTrash() {
-      return trashSummary;
-    },
-    async emptyTrash() {
-      return trashSummary;
     },
     write(value) {
       output.push(value);
     },
   };
-  return { dependencies, output, purgeCalls, trashSummary };
+  return { dependencies, output, purgeCalls };
 }
 
-function thread(id: string): Thread {
+function thread(id: string, overrides: Partial<Thread> = {}): Thread {
   return {
     id,
     title: "Demo session",
     rolloutPath: "/tmp/demo.jsonl",
     cwd: "/tmp/demo",
+    gitOriginUrl: "git@github.com:demo/repo.git",
     updatedAt: new Date("2026-06-19T00:00:00Z"),
     archived: false,
+    ...overrides,
   };
 }
