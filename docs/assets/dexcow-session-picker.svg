@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1350" height="650" viewBox="0 0 1350 650" role="img" aria-labelledby="title desc">
   <title id="title">dexcow session picker demo</title>
-  <desc id="desc">A terminal screenshot showing dexcow prompting the user to pick sessions to trash using fake demo session titles.</desc>
+  <desc id="desc">A terminal screenshot showing dexcow prompting the user to pick sessions to delete using fake demo session titles.</desc>
   <rect width="1350" height="650" fill="#282a36"/>
   <style>
     .term { font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 26px; font-weight: 500; letter-spacing: 0; }
@@ -34,7 +34,7 @@
   <text x="815" y="207" class="term muted">latest</text>
   <text x="980" y="207" class="term muted">6h</text>
 
-  <text x="58" y="280" class="term fg">Pick sessions to trash (space toggles, enter continues, q exits)</text>
+  <text x="58" y="280" class="term fg">Pick sessions to delete (space toggles, enter continues, q exits)</text>
 
   <rect x="60" y="302" width="12" height="12" fill="none" stroke="#8be9fd" stroke-width="3"/>
   <text x="112" y="316" class="term muted">6h</text>
@@ -68,7 +68,7 @@
 
   <rect x="60" y="518" width="12" height="12" fill="none" stroke="#9a9aa6" stroke-width="3"/>
   <text x="112" y="532" class="term muted">16d</text>
-  <text x="202" y="532" class="term muted">Document trash empty workflow</text>
+  <text x="202" y="532" class="term muted">Review session cleanup workflow</text>
   <text x="1210" y="532" class="term green">active</text>
 
   <rect x="60" y="554" width="12" height="12" fill="none" stroke="#9a9aa6" stroke-width="3"/>

@@ -8,14 +8,14 @@
 flowchart LR
   A["dexcow"] --> B["interactive"]
   A --> C["ls"]
-  A --> D["rm <id...>"]
-  A --> E["trash"]
+  A --> D["archived"]
+  A --> E["rm <id...>"]
   A --> F["--version"]
 ```
 
 ### Agent skill
 
-Related files: `skills/dexcow/SKILL.md`, `src/agent.ts`, `src/purge.ts`, `src/threads.ts`, `src/trash.ts`.
+Related files: `skills/dexcow/SKILL.md`, `src/agent.ts`, `src/purge.ts`, `src/threads.ts`, `src/rolloutFiles.ts`.
 
 ```mermaid
 flowchart LR
@@ -25,35 +25,35 @@ flowchart LR
   D --> E["Local Codex stores"]
 ```
 
-The bundled agent runner is separate from the interactive CLI/TUI, but both front ends reuse the same session discovery, purge, and trash modules. The skill requires Bun to run its bundled JavaScript; the standalone release binary does not.
+The bundled agent runner is separate from the interactive CLI/TUI, but both front ends reuse the same session discovery and purge modules. The skill requires Bun to run its bundled JavaScript; the standalone release binary does not.
 
 ### Interactive delete
 
-Related files: `src/index.ts`, `src/commands.ts`, `src/purge.ts`, `src/threads.ts`, `src/sessionIndex.ts`, `src/trash.ts`.
+Related files: `src/index.ts`, `src/commands.ts`, `src/purge.ts`, `src/threads.ts`, `src/sessionIndex.ts`, `src/rolloutFiles.ts`, `src/sessionArtifacts.ts`.
 
 ```mermaid
 flowchart LR
-  A["Find state_*.sqlite"] --> B["Open DB"]
-  B --> C["Load sessions"]
-  C --> D["Pick repo + sessions"]
-  D --> E["Move/delete rollout files"]
-  E --> F["Purge state, logs, index"]
-  F --> G["Summary"]
+  A["Open state_5.sqlite"] --> B["Load sessions"]
+  B --> D["Group active sessions by Git origin"]
+  D --> E["Pick repo/unlinked + sessions"]
+  E --> F["Delete session files"]
+  F --> H["Purge current stores"]
+  H --> G["Summary"]
 ```
 
-### Store discovery
+### Current store layout
 
-Related files: `src/codexStores.ts`, `src/paths.ts`, `src/threads.ts`, `src/purge.ts`.
+Related files: `src/codexStores.ts`, `src/paths.ts`, `src/threads.ts`, `src/purge.ts`, `src/desktopStores.ts`.
 
 ```mermaid
 flowchart LR
-  A["Scan CODEX_HOME"] --> B["Match state_*.sqlite / logs_*.sqlite"]
-  B --> C["Check expected tables + columns"]
-  C --> D["Use newest valid schema"]
-  C --> E["Ignore unrelated DBs"]
+  A["state_5.sqlite"] --> B["Session state"]
+  C["logs_2.sqlite"] --> D["Session logs"]
+  E["sqlite/codex-dev.db"] --> F["Desktop catalog/history"]
+  G["codex-history-snapshots-dev.db"] --> H["History snapshots"]
 ```
 
-`dexcow` treats Codex's numbered SQLite filenames as internal schema generations. It prefers the newest matching file with the expected schema instead of relying on one hardcoded filename. Nested databases such as `~/.codex/sqlite/codex-dev.db` are outside the session purge scope.
+These are private Codex implementation details, not a stable public API. Dexcow targets the current schema explicitly so storage drift fails visibly and can be updated promptly.
 
 ### List sessions
 
@@ -61,24 +61,23 @@ Related files: `src/index.ts`, `src/commands.ts`, `src/threads.ts`, `src/session
 
 ```mermaid
 flowchart LR
-  A["Find state_*.sqlite"] --> B["Open DB"]
-  B --> C["Load sessions"]
-  C --> D["Resolve titles"]
-  D --> E["Group by repo"]
-  E --> F["Print"]
+  A["Open state_5.sqlite"] --> B["Load sessions"]
+  B --> D["Filter active/archived"]
+  D --> E["Resolve titles"]
+  E --> H["Group by Git origin"]
+  H --> F["Print"]
 ```
 
 ### Remove by id
 
-Related files: `src/index.ts`, `src/commands.ts`, `src/purge.ts`, `src/threads.ts`, `src/sessionIndex.ts`, `src/trash.ts`.
+Related files: `src/index.ts`, `src/commands.ts`, `src/purge.ts`, `src/threads.ts`, `src/sessionIndex.ts`, `src/rolloutFiles.ts`, `src/sessionArtifacts.ts`.
 
 ```mermaid
 flowchart LR
-  A["Find state_*.sqlite"] --> B["Open DB"]
-  B --> C["Load sessions"]
-  C --> D["Match ids"]
-  D --> E["Move/delete rollout files"]
-  E --> F["Purge state, logs, index"]
+  A["Open state_5.sqlite"] --> B["Load sessions"]
+  B --> D["Match ids"]
+  D --> E["Delete session files"]
+  E --> F["Purge current stores"]
   F --> G["Summary"]
 ```
 
@@ -86,27 +85,21 @@ flowchart LR
 
 `dexcow` removes:
 
-- thread rows from the newest valid `~/.codex/state_*.sqlite`
-- related rows from `thread_dynamic_tools`, `thread_spawn_edges`, and `stage1_outputs` when those tables exist
-- `agent_job_items.assigned_thread_id` references when that column exists
-- matching `thread_id` rows from the newest valid `~/.codex/logs_*.sqlite` when the logs database exists
+- thread rows and related `thread_dynamic_tools` and `thread_spawn_edges` rows from `~/.codex/state_5.sqlite`
+- matching log rows from `~/.codex/logs_2.sqlite` when it exists
 - matching entries from `~/.codex/session_index.jsonl`
-- rollout files under `~/.codex/sessions/`
+- rollout files under `~/.codex/sessions/` and `~/.codex/archived_sessions/`
+- matching files from `~/.codex/shell_snapshots/`
+- matching catalog, timeline, automation-run, and inbox rows from `~/.codex/sqlite/codex-dev.db` when it exists
+- matching rows from `~/.codex/sqlite/codex-history-snapshots-dev.db` when it exists
 
-It leaves `auth.json`, `config.toml`, memories, skills, and `~/.codex/sqlite/codex-dev.db` alone.
+It leaves authentication, configuration, memories, goals, skills, attachments, worktrees, global UI state, and automation definitions alone.
 
-## Trash
+Before changing anything, dexcow refuses selected sessions with a matching `thread-writer-locks/<id>.lock` file.
 
-Related files: `src/index.ts`, `src/commands.ts`, `src/trash.ts`.
+## JSONL Handling
 
-```mermaid
-flowchart LR
-  A["trash"] --> B["Inspect .dexcow-trash"]
-  B --> C["Print buckets"]
-  A2["trash --empty"] --> B2["Inspect .dexcow-trash"]
-  B2 --> C2["Confirm"]
-  C2 --> D2["Delete .dexcow-trash"]
-```
+`session_index.jsonl` currently contains `id`, `thread_name`, and `updated_at`; dexcow uses it for display names and removes every entry matching a purged id. Rollout JSONL files contain evolving event and response-item types, but dexcow deletes each selected file as an opaque artifact and does not depend on its internal event schema.
 
 ## Test Coverage
 
