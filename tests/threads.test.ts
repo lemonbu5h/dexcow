@@ -40,11 +40,28 @@ test("listThreads exposes archived sessions only when requested", async () => {
   }
 });
 
+test("listThreads hides internal subagent sessions in every scope", async () => {
+  const fixture = await createFixture();
+  const db = new Database(fixture.stateDbPath, { create: false, readwrite: true });
+  try {
+    const options = { sessionIndexPath: fixture.sessionIndexPath };
+    const active = await listThreads(db, { ...options, scope: "active" });
+    const archived = await listThreads(db, { ...options, scope: "archived" });
+    const all = await listThreads(db, { ...options, scope: "all" });
+
+    expect(active.map((thread) => thread.id)).toEqual(["thread-1"]);
+    expect(archived.map((thread) => thread.id)).toEqual(["thread-2"]);
+    expect(all.map((thread) => thread.id)).toEqual(["thread-2", "thread-1"]);
+  } finally {
+    db.close();
+  }
+});
+
 test("openDb opens an existing state database", async () => {
   const fixture = await createFixture();
   const db = openDb(fixture.stateDbPath);
   try {
-    expect(db.query("SELECT count(*) AS count FROM threads").get()).toEqual({ count: 2 });
+    expect(db.query("SELECT count(*) AS count FROM threads").get()).toEqual({ count: 4 });
   } finally {
     db.close();
   }
@@ -57,9 +74,12 @@ async function createFixture(): Promise<{ stateDbPath: string; sessionIndexPath:
   const sessionIndexPath = join(root, "session_index.jsonl");
   const db = new Database(stateDbPath, { create: true, readwrite: true });
   try {
-    db.run("CREATE TABLE threads (id TEXT PRIMARY KEY, rollout_path TEXT NOT NULL, cwd TEXT NOT NULL, git_origin_url TEXT NOT NULL, title TEXT NOT NULL, updated_at INTEGER NOT NULL, archived INTEGER NOT NULL)");
-    db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?, ?)").run("thread-1", "/tmp/one.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "[Read this first](https://example.com)\nMore detail", 1, 0);
-    db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?, ?)").run("thread-2", "/tmp/two.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "Ignored title", 2, 1);
+    db.run("CREATE TABLE threads (id TEXT PRIMARY KEY, rollout_path TEXT NOT NULL, cwd TEXT NOT NULL, git_origin_url TEXT NOT NULL, title TEXT NOT NULL, updated_at INTEGER NOT NULL, archived INTEGER NOT NULL, thread_source TEXT)");
+    const insert = db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    insert.run("thread-1", "/tmp/one.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "[Read this first](https://example.com)\nMore detail", 1, 0, "cli");
+    insert.run("thread-2", "/tmp/two.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "Ignored title", 2, 1, "cli");
+    insert.run("subagent-active", "/tmp/subagent-active.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "[260] user:", 3, 0, "subagent");
+    insert.run("subagent-archived", "/tmp/subagent-archived.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "Reviewer transcript", 4, 1, "subagent");
   } finally {
     db.close();
   }
