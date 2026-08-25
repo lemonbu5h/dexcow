@@ -42,7 +42,7 @@ jobs:
         run: bun test
 
       - name: Compile
-        run: bun build src/index.ts --compile --target=${{ matrix.target }} --outfile dist/${{ matrix.artifact }}
+        run: bun build src/index.ts --compile --target=${{ matrix.target }} --outfile dist/${{ matrix.artifact }} --sourcemap=inline
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

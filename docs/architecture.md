@@ -95,7 +95,7 @@ flowchart LR
 
 It leaves authentication, configuration, memories, goals, skills, attachments, worktrees, global UI state, and automation definitions alone.
 
-Before changing anything, dexcow refuses selected sessions with a matching `thread-writer-locks/<id>.lock` file.
+The interactive picker hides sessions with a matching `thread-writer-locks/<id>.lock` file. Before changing anything, the purge layer checks again and refuses deletion if Codex acquired a lock after selection.
 
 ## JSONL Handling
 

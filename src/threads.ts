@@ -27,6 +27,8 @@ const SELECT_THREADS = `
   FROM threads
 `;
 
+const USER_FACING_THREAD = "COALESCE(thread_source, '') <> 'subagent'";
+
 export type ThreadScope = "active" | "archived" | "all";
 
 export interface ListThreadOptions {
@@ -41,8 +43,14 @@ export function openDb(stateDbPath = resolveStateDbPath()): Database {
 export async function listThreads(db: Database, opts: ListThreadOptions = {}): Promise<Thread[]> {
   // The database owns deletion state; session_index.jsonl only improves the title shown to users.
   const names = await loadThreadNames(opts.sessionIndexPath);
-  const where = opts.scope === "archived" ? "WHERE archived = 1" : opts.scope === "all" ? "" : "WHERE archived = 0";
+  const where = scopeFilter(opts.scope);
   return db.query(`${SELECT_THREADS} ${where} ORDER BY updated_at DESC, id DESC`).all().map((r) => toThread(r, names));
+}
+
+function scopeFilter(scope: ThreadScope | undefined): string {
+  if (scope === "archived") return `WHERE archived = 1 AND ${USER_FACING_THREAD}`;
+  if (scope === "all") return `WHERE ${USER_FACING_THREAD}`;
+  return `WHERE archived = 0 AND ${USER_FACING_THREAD}`;
 }
 
 function toThread(raw: unknown, names: ThreadNameMap): Thread {

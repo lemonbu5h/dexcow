@@ -54,7 +54,7 @@ async function createCodexHome(): Promise<string> {
 
 function createStateDb(path: string): void {
   withDb(path, (db) => {
-    db.run("CREATE TABLE threads (id TEXT, rollout_path TEXT, cwd TEXT, git_origin_url TEXT, title TEXT, updated_at INTEGER, archived INTEGER)");
+    db.run("CREATE TABLE threads (id TEXT, rollout_path TEXT, cwd TEXT, git_origin_url TEXT, title TEXT, updated_at INTEGER, archived INTEGER, thread_source TEXT)");
   });
 }
 

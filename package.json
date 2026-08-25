@@ -1,6 +1,6 @@
 {
   "name": "dexcow",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A lightweight Bun CLI with an interactive TUI, plus an agent skill for safely cleaning up local Codex sessions.",
   "type": "module",
   "bin": {
@@ -17,9 +17,9 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bun run build:cli && bun run build:skill",
-    "build:cli": "bun build src/index.ts --target=bun --outfile=dist/dexcow.js --minify",
-    "build:skill": "bun build src/agent.ts --target=bun --outfile=skills/dexcow/bin/dexcow-agent.js --minify",
-    "compile": "bun build src/index.ts --compile --outfile=dist/dexcow",
+    "build:cli": "bun build src/index.ts --target=bun --outfile=dist/dexcow.js --minify --sourcemap=inline",
+    "build:skill": "bun build src/agent.ts --target=bun --outfile=skills/dexcow/bin/dexcow-agent.js --minify --sourcemap=inline",
+    "compile": "bun build src/index.ts --compile --outfile=dist/dexcow --sourcemap=inline",
     "test": "bun test",
     "coverage": "bun test --coverage",
     "typecheck": "tsc --noEmit"

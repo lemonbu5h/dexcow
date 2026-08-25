@@ -5,6 +5,7 @@ import { describeStateDbPath } from "./codexStores.ts";
 import { parseArgs } from "./args.ts";
 import { runInteractive, runList, runRemove } from "./commands.ts";
 import { helpFor } from "./help.ts";
+import { ThreadsLockedError } from "./sessionArtifacts.ts";
 import { VERSION } from "./version.ts";
 
 updateSettings({
@@ -51,6 +52,14 @@ async function main(argv: string[]): Promise<void> {
         process.exit(2);
     }
   } catch (err) {
+    if (err instanceof ThreadsLockedError) {
+      const count = err.threadIds.length;
+      const noun = count === 1 ? "session" : "sessions";
+      console.error(pc.yellow(`Cannot delete ${count} ${noun}; Codex is still using ${count === 1 ? "it" : "them"}.`));
+      console.error(pc.dim("Close the active task in Codex and try again. No changes were made."));
+      process.exitCode = 1;
+      return;
+    }
     if (isMissingDb(err)) {
       console.error(pc.red("Codex state database not found:"), describeStateDbPath());
       console.error(pc.dim("Is Codex installed? Set CODEX_HOME to override."));

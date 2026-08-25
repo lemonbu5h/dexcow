@@ -3,10 +3,21 @@ import { existsSync, type Dirent } from "node:fs";
 import { join } from "node:path";
 import { paths } from "./paths.ts";
 
+export class ThreadsLockedError extends Error {
+  constructor(readonly threadIds: string[]) {
+    super(`close active Codex session(s) before deleting: ${threadIds.join(", ")}`);
+    this.name = "ThreadsLockedError";
+  }
+}
+
+export function findLockedThreadIds(ids: Set<string>, locksRoot = paths.threadWriterLocks): string[] {
+  return [...ids].filter((id) => existsSync(join(locksRoot, `${id}.lock`)));
+}
+
 export function assertThreadsUnlocked(ids: Set<string>, locksRoot = paths.threadWriterLocks): void {
-  const locked = [...ids].filter((id) => existsSync(join(locksRoot, `${id}.lock`)));
+  const locked = findLockedThreadIds(ids, locksRoot);
   if (locked.length > 0) {
-    throw new Error(`close active Codex session(s) before deleting: ${locked.join(", ")}`);
+    throw new ThreadsLockedError(locked);
   }
 }
 

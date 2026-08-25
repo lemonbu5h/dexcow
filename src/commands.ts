@@ -1,6 +1,7 @@
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import { purgeThreads, type PurgeResult } from "./purge.ts";
+import { findLockedThreadIds } from "./sessionArtifacts.ts";
 import { listThreads, openDb, type Thread, type ThreadScope } from "./threads.ts";
 import {
   formatThreadGroups,
@@ -25,7 +26,18 @@ export async function runInteractive(scope: ThreadScope = "active"): Promise<voi
       return;
     }
 
-    const target = await pickInteractiveGroup(threads);
+    const lockedIds = new Set(findLockedThreadIds(new Set(threads.map((thread) => thread.id))));
+    const availableThreads = threads.filter((thread) => !lockedIds.has(thread.id));
+    if (lockedIds.size > 0) {
+      const noun = lockedIds.size === 1 ? "task is" : "tasks are";
+      p.note(`${lockedIds.size} open ${noun} currently in use by Codex and hidden.`, "in use");
+    }
+    if (availableThreads.length === 0) {
+      p.outro("close the open task in Codex and try again");
+      return;
+    }
+
+    const target = await pickInteractiveGroup(availableThreads);
     if (p.isCancel(target)) {
       exitCleanly("exited; no changes made");
       return;
@@ -47,7 +59,7 @@ export async function runInteractive(scope: ThreadScope = "active"): Promise<voi
     }
 
     const ids = new Set(picked);
-    const chosen = threads.filter((t) => ids.has(t.id));
+    const chosen = availableThreads.filter((t) => ids.has(t.id));
     p.note(chosen.map(renderChosenLine).join("\n"), "selected");
     const confirmed = await p.confirm({
       message: `permanently delete ${pc.bold(String(chosen.length))} session(s)?`,
