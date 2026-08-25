@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { assertThreadsUnlocked } from "../src/sessionArtifacts.ts";
+import { assertThreadsUnlocked, findLockedThreadIds, ThreadsLockedError } from "../src/sessionArtifacts.ts";
 
 const tempDirs: string[] = [];
 
@@ -17,8 +17,14 @@ test("assertThreadsUnlocked refuses sessions with a current writer lock", async 
   tempDirs.push(locksRoot);
   await writeFile(join(locksRoot, "thread-1.lock"), "", "utf8");
 
-  expect(() => assertThreadsUnlocked(new Set(["thread-1"]), locksRoot)).toThrow(
-    "close active Codex session(s) before deleting: thread-1",
-  );
+  expect(findLockedThreadIds(new Set(["thread-1", "thread-2"]), locksRoot)).toEqual(["thread-1"]);
+  expect(() => assertThreadsUnlocked(new Set(["thread-1"]), locksRoot)).toThrow(ThreadsLockedError);
+
+  try {
+    assertThreadsUnlocked(new Set(["thread-1"]), locksRoot);
+  } catch (error) {
+    expect(error).toBeInstanceOf(ThreadsLockedError);
+    expect((error as ThreadsLockedError).threadIds).toEqual(["thread-1"]);
+  }
   expect(() => assertThreadsUnlocked(new Set(["thread-2"]), locksRoot)).not.toThrow();
 });
