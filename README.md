@@ -84,6 +84,8 @@ After deleting sessions, refresh Codex if the GUI still shows old sessions. Clic
 
 Codex's local storage format is private and changes quickly. Dexcow intentionally targets the current `state_5.sqlite`, `logs_2.sqlite`, `session_index.jsonl`, and Desktop SQLite schemas instead of carrying compatibility code for older layouts. Rollout JSONL contents are never parsed; only the current three-field session index is read and rewritten.
 
+If Codex briefly locks its state database, dexcow waits and retries before reporting it as temporarily unavailable. An existing database with an unsupported schema is reported separately instead of being mistaken for a missing Codex installation.
+
 It does not touch `auth.json`, `config.toml`, memories, goals, skills, attachments, worktrees, global UI state, or automation definitions.
 
 Set `CODEX_HOME` to point at a non-default Codex directory.

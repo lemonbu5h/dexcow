@@ -1,7 +1,11 @@
 #!/usr/bin/env bun
 import { updateSettings } from "@clack/prompts";
 import pc from "picocolors";
-import { describeStateDbPath } from "./codexStores.ts";
+import {
+  CodexStoreNotFoundError,
+  CodexStoreSchemaError,
+  CodexStoreUnavailableError,
+} from "./codexStores.ts";
 import { parseArgs } from "./args.ts";
 import { runInteractive, runList, runRemove } from "./commands.ts";
 import { helpFor } from "./help.ts";
@@ -60,18 +64,27 @@ async function main(argv: string[]): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    if (isMissingDb(err)) {
-      console.error(pc.red("Codex state database not found:"), describeStateDbPath());
+    if (err instanceof CodexStoreUnavailableError) {
+      console.error(pc.yellow("Codex state database is temporarily unavailable:"), err.path);
+      console.error(pc.dim("Codex may be updating it. Wait a moment, then try again."));
+      process.exitCode = 1;
+      return;
+    }
+    if (err instanceof CodexStoreSchemaError) {
+      console.error(pc.yellow("This Codex storage format is not supported yet:"), err.path);
+      console.error(pc.dim(`Missing expected fields: ${err.missingColumns.join(", ")}`));
+      console.error(pc.dim("Update dexcow after Codex changes its local database schema."));
+      process.exitCode = 1;
+      return;
+    }
+    if (err instanceof CodexStoreNotFoundError) {
+      console.error(pc.red("Codex state database not found:"), err.path);
       console.error(pc.dim("Is Codex installed? Set CODEX_HOME to override."));
-      process.exit(1);
+      process.exitCode = 1;
+      return;
     }
     throw err;
   }
-}
-
-function isMissingDb(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err);
-  return msg.includes("Codex state database not found") || msg.includes("unable to open") || msg.includes("ENOENT");
 }
 
 await main(process.argv);
