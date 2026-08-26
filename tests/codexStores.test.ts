@@ -3,7 +3,13 @@ import { Database } from "bun:sqlite";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { resolveLogsDbPath, resolveStateDbPath } from "../src/codexStores.ts";
+import {
+  CodexStoreNotFoundError,
+  CodexStoreSchemaError,
+  CodexStoreUnavailableError,
+  resolveLogsDbPath,
+  resolveStateDbPath,
+} from "../src/codexStores.ts";
 
 const tempDirs: string[] = [];
 
@@ -21,6 +27,13 @@ test("resolveStateDbPath uses the current state_5 schema", async () => {
   expect(resolveStateDbPath(root)).toBe(join(root, "state_5.sqlite"));
 });
 
+test("resolveStateDbPath reports a genuinely missing database", async () => {
+  const root = await createCodexHome();
+
+  expect(() => resolveStateDbPath(root)).toThrow(CodexStoreNotFoundError);
+  expect(() => resolveStateDbPath(root)).toThrow("current Codex state database not found");
+});
+
 test("resolveStateDbPath ignores nested codex-dev databases", async () => {
   const root = await createCodexHome();
   await mkdir(join(root, "sqlite"), { recursive: true });
@@ -34,7 +47,16 @@ test("resolveStateDbPath throws when no state schema matches", async () => {
   const root = await createCodexHome();
   createInvalidDb(join(root, "state_5.sqlite"));
 
-  expect(() => resolveStateDbPath(root)).toThrow("current Codex state database not found");
+  expect(() => resolveStateDbPath(root)).toThrow(CodexStoreSchemaError);
+  expect(() => resolveStateDbPath(root)).toThrow("missing: threads.id");
+});
+
+test("resolveStateDbPath distinguishes an unavailable database", async () => {
+  const root = await createCodexHome();
+  await mkdir(join(root, "state_5.sqlite"));
+
+  expect(() => resolveStateDbPath(root)).toThrow(CodexStoreUnavailableError);
+  expect(() => resolveStateDbPath(root)).toThrow("temporarily unavailable");
 });
 
 test("resolveLogsDbPath uses the current logs_2 schema or returns null", async () => {
@@ -44,6 +66,13 @@ test("resolveLogsDbPath uses the current logs_2 schema or returns null", async (
 
   expect(resolveLogsDbPath(root)).toBe(join(root, "logs_2.sqlite"));
   expect(resolveLogsDbPath(await createCodexHome())).toBeNull();
+});
+
+test("resolveLogsDbPath treats an incompatible optional log database as unavailable", async () => {
+  const root = await createCodexHome();
+  createInvalidDb(join(root, "logs_2.sqlite"));
+
+  expect(resolveLogsDbPath(root)).toBeNull();
 });
 
 async function createCodexHome(): Promise<string> {

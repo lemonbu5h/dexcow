@@ -17,8 +17,8 @@
 5. Create and push an annotated tag from `main`:
 
    ```bash
-   git tag -a v0.2.1 -m "release: v0.2.1"
-   git push origin v0.2.1
+   git tag -a v0.2.2 -m "release: v0.2.2"
+   git push origin v0.2.2
    ```
 
 6. Confirm the Release workflow succeeds and the GitHub Release has these assets:

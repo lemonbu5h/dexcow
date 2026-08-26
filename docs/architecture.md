@@ -97,6 +97,8 @@ It leaves authentication, configuration, memories, goals, skills, attachments, w
 
 The interactive picker hides sessions with a matching `thread-writer-locks/<id>.lock` file. Before changing anything, the purge layer checks again and refuses deletion if Codex acquired a lock after selection.
 
+State-store discovery validates the root `~/.codex/state_5.sqlite` schema and never falls back to stale nested copies. SQLite busy errors are retried briefly; missing, temporarily unavailable, and unsupported stores remain distinct error states.
+
 ## JSONL Handling
 
 `session_index.jsonl` currently contains `id`, `thread_name`, and `updated_at`; dexcow uses it for display names and removes every entry matching a purged id. Rollout JSONL files contain evolving event and response-item types, but dexcow deletes each selected file as an opaque artifact and does not depend on its internal event schema.
