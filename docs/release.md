@@ -17,11 +17,13 @@
 5. Create and push an annotated tag from `main`:
 
    ```bash
-   git tag -a v0.2.2 -m "release: v0.2.2"
-   git push origin v0.2.2
+   git tag -a v0.2.3 -m "fix: match Codex titles and show locked sessions"
+   git push origin v0.2.3
    ```
 
-6. Confirm the Release workflow succeeds and the GitHub Release has these assets:
+   Keep the tag message to one user-facing sentence. GitHub generates the detailed **What's Changed** section from the merged pull requests.
+
+6. Confirm the Release workflow succeeds, the generated notes are readable, and the GitHub Release has these assets:
 
    - `dexcow-macos-arm64`
    - `dexcow-linux-x64`

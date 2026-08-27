@@ -91,8 +91,8 @@ async function createLockedSessionFixture(): Promise<string> {
 
   const db = new Database(join(root, "state_5.sqlite"), { create: true, readwrite: true });
   try {
-    db.run("CREATE TABLE threads (id TEXT PRIMARY KEY, rollout_path TEXT NOT NULL, cwd TEXT NOT NULL, git_origin_url TEXT, title TEXT NOT NULL, updated_at INTEGER NOT NULL, archived INTEGER NOT NULL, thread_source TEXT)");
-    db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(
+    db.run("CREATE TABLE threads (id TEXT PRIMARY KEY, rollout_path TEXT NOT NULL, cwd TEXT NOT NULL, git_origin_url TEXT, title TEXT NOT NULL, updated_at INTEGER NOT NULL, archived INTEGER NOT NULL, thread_source TEXT, name TEXT)");
+    db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run(
       "thread-1",
       join(root, "sessions", "thread-1.jsonl"),
       "/tmp/demo",
@@ -101,6 +101,7 @@ async function createLockedSessionFixture(): Promise<string> {
       1,
       0,
       "cli",
+      null,
     );
   } finally {
     db.close();

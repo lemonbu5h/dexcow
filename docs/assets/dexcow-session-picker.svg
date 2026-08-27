@@ -31,8 +31,6 @@
   <text x="58" y="172" class="term fg">Pick a repo</text>
   <text x="58" y="207" class="term muted">codex-notes</text>
   <text x="600" y="207" class="term muted">7 sessions</text>
-  <text x="815" y="207" class="term muted">latest</text>
-  <text x="980" y="207" class="term muted">6h</text>
 
   <text x="58" y="280" class="term fg">Pick sessions to delete (space toggles, enter continues, q exits)</text>
 

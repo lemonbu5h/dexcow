@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { openStateDb } from "./codexStores.ts";
+import { loadDesktopThreadTitles } from "./desktopCatalog.ts";
 import { loadThreadNames, type ThreadNameMap } from "./sessionIndex.ts";
 
 export interface Thread {
@@ -14,6 +15,7 @@ export interface Thread {
 
 interface ThreadRow {
   id: string;
+  name: string | null;
   title: string;
   rollout_path: string;
   cwd: string;
@@ -23,7 +25,7 @@ interface ThreadRow {
 }
 
 const SELECT_THREADS = `
-  SELECT id, title, rollout_path, cwd, git_origin_url, updated_at, archived
+  SELECT id, name, title, rollout_path, cwd, git_origin_url, updated_at, archived
   FROM threads
 `;
 
@@ -34,6 +36,7 @@ export type ThreadScope = "active" | "archived" | "all";
 export interface ListThreadOptions {
   scope?: ThreadScope;
   sessionIndexPath?: string;
+  desktopDbPath?: string;
 }
 
 export function openDb(stateDbPath?: string): Database {
@@ -41,10 +44,12 @@ export function openDb(stateDbPath?: string): Database {
 }
 
 export async function listThreads(db: Database, opts: ListThreadOptions = {}): Promise<Thread[]> {
-  // The database owns deletion state; session_index.jsonl only improves the title shown to users.
+  // The state database owns deletion state; the other stores only improve user-facing titles.
+  const desktopTitles = loadDesktopThreadTitles(opts.desktopDbPath);
   const names = await loadThreadNames(opts.sessionIndexPath);
   const where = scopeFilter(opts.scope);
-  return db.query(`${SELECT_THREADS} ${where} ORDER BY updated_at DESC, id DESC`).all().map((r) => toThread(r, names));
+  return db.query(`${SELECT_THREADS} ${where} ORDER BY updated_at DESC, id DESC`).all()
+    .map((row) => toThread(row, desktopTitles, names));
 }
 
 function scopeFilter(scope: ThreadScope | undefined): string {
@@ -53,11 +58,11 @@ function scopeFilter(scope: ThreadScope | undefined): string {
   return `WHERE archived = 0 AND ${USER_FACING_THREAD}`;
 }
 
-function toThread(raw: unknown, names: ThreadNameMap): Thread {
+function toThread(raw: unknown, desktopTitles: ReadonlyMap<string, string>, names: ThreadNameMap): Thread {
   const r = raw as ThreadRow;
   return {
     id: r.id,
-    title: resolveTitle(r.id, r.title, names),
+    title: resolveTitle(r, desktopTitles, names),
     rolloutPath: r.rollout_path,
     cwd: r.cwd,
     gitOriginUrl: r.git_origin_url,
@@ -66,10 +71,13 @@ function toThread(raw: unknown, names: ThreadNameMap): Thread {
   };
 }
 
-function resolveTitle(id: string, rawTitle: string, names: ThreadNameMap): string {
-  const named = names.get(id)?.trim();
-  if (named !== undefined && named.length > 0) return named;
-  return fallbackTitle(rawTitle);
+function resolveTitle(row: ThreadRow, desktopTitles: ReadonlyMap<string, string>, names: ThreadNameMap): string {
+  const candidates = [row.name, desktopTitles.get(row.id), names.get(row.id)];
+  for (const candidate of candidates) {
+    const title = candidate?.trim();
+    if (title) return title;
+  }
+  return fallbackTitle(row.title);
 }
 
 function fallbackTitle(raw: string): string {

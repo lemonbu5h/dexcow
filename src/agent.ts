@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { parseArgs } from "./args.ts";
 import { purgeThreads, type PurgeResult } from "./purge.ts";
+import { findLockedThreadIds } from "./sessionArtifacts.ts";
 import { listThreads, openDb, type Thread, type ThreadScope } from "./threads.ts";
 
 interface AgentSession {
@@ -9,6 +10,7 @@ interface AgentSession {
   cwd: string;
   updatedAt: string;
   archived: boolean;
+  locked: boolean;
 }
 
 interface AgentOptions {
@@ -17,6 +19,7 @@ interface AgentOptions {
 
 export interface AgentDependencies {
   loadSessions(scope?: ThreadScope): Promise<Thread[]>;
+  findLockedIds(sessions: Thread[]): Set<string>;
   purge(sessions: Thread[]): Promise<PurgeResult>;
   write(value: unknown): void;
 }
@@ -49,7 +52,12 @@ export async function runAgent(argv: string[], dependencies: AgentDependencies =
 
 async function listSessions(scope: ThreadScope, dependencies: AgentDependencies): Promise<void> {
   const sessions = await dependencies.loadSessions(scope);
-  dependencies.write({ operation: "list", scope, sessions: sessions.map(sessionForAgent) });
+  const lockedIds = dependencies.findLockedIds(sessions);
+  dependencies.write({
+    operation: "list",
+    scope,
+    sessions: sessions.map((session) => sessionForAgent(session, lockedIds.has(session.id))),
+  });
 }
 
 async function purgeSessions(ids: string[], options: AgentOptions, dependencies: AgentDependencies): Promise<void> {
@@ -59,7 +67,7 @@ async function purgeSessions(ids: string[], options: AgentOptions, dependencies:
   dependencies.write({
     operation: "purge",
     mode: "delete",
-    sessions: selected.map(sessionForAgent),
+    sessions: selected.map((session) => sessionForAgent(session, false)),
     result,
     refresh: REFRESH_NOTE,
   });
@@ -90,18 +98,22 @@ function confirmationOptions(argv: string[]): AgentOptions {
   };
 }
 
-function sessionForAgent(session: Thread): AgentSession {
+function sessionForAgent(session: Thread, locked: boolean): AgentSession {
   return {
     id: session.id,
     title: session.title,
     cwd: session.cwd,
     updatedAt: session.updatedAt.toISOString(),
     archived: session.archived,
+    locked,
   };
 }
 
 const defaultDependencies: AgentDependencies = {
   loadSessions: loadLocalSessions,
+  findLockedIds(sessions): Set<string> {
+    return new Set(findLockedThreadIds(new Set(sessions.map((session) => session.id))));
+  },
   async purge(sessions): Promise<PurgeResult> {
     const db = openDb();
     try {

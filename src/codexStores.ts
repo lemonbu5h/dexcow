@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { paths } from "./paths.ts";
 
 const STATE_SCHEMA = {
-  threads: ["id", "rollout_path", "cwd", "git_origin_url", "title", "updated_at", "archived", "thread_source"],
+  threads: ["id", "rollout_path", "cwd", "git_origin_url", "title", "updated_at", "archived", "thread_source", "name"],
 } as const;
 
 const LOGS_SCHEMA = {

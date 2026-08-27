@@ -74,7 +74,7 @@ The default picker mirrors Codex by showing active sessions only. Sessions from 
 
 Press space to select sessions, then enter to review the selected sessions and confirm permanent deletion.
 
-Dexcow hides sessions that Codex is currently writing. If a session becomes active after selection, dexcow refuses the deletion cleanly and makes no changes. Close that task first, then run the cleanup again.
+Dexcow marks sessions that Codex is currently writing as **locked**. They remain visible for context but cannot be selected for deletion. If Codex locks a session while the picker is open, dexcow removes it from the selection before confirmation; the purge layer checks once more before changing anything.
 
 After deleting sessions, refresh Codex if the GUI still shows old sessions. Clicking the repo in Codex and collapsing or expanding it usually refreshes the list; restart Codex only if it still looks stale.
 

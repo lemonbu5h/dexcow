@@ -56,6 +56,15 @@ test("formatThreadGroups displays full titles with status after the title", () =
   expect(output.indexOf("Check repo policy compliance")).toBeLessThan(output.indexOf("active"));
 });
 
+test("formatThreadGroups shows lock availability separately from Codex status", () => {
+  const session = thread("/Users/queen/Projects/dexcow", { id: "locked-thread" });
+  const output = formatThreadGroups([session], new Set([session.id]));
+
+  expect(output).toContain("active");
+  expect(output).toContain("locked");
+  expect(output.indexOf("active")).toBeLessThan(output.indexOf("locked"));
+});
+
 test("formatThreadGroupHeader disambiguates duplicate repo names", () => {
   const groups = groupThreadsByProject([
     thread("/Users/queen/Projects/work/app", { id: "work", gitOriginUrl: "git@github.com:work/app.git" }),

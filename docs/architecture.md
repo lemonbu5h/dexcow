@@ -29,13 +29,14 @@ The bundled agent runner is separate from the interactive CLI/TUI, but both fron
 
 ### Interactive delete
 
-Related files: `src/index.ts`, `src/commands.ts`, `src/purge.ts`, `src/threads.ts`, `src/sessionIndex.ts`, `src/rolloutFiles.ts`, `src/sessionArtifacts.ts`.
+Related files: `src/index.ts`, `src/commands.ts`, `src/purge.ts`, `src/threads.ts`, `src/desktopCatalog.ts`, `src/sessionIndex.ts`, `src/rolloutFiles.ts`, `src/sessionArtifacts.ts`.
 
 ```mermaid
 flowchart LR
   A["Open state_5.sqlite"] --> B["Load sessions"]
-  B --> D["Group active sessions by Git origin"]
-  D --> E["Pick repo/unlinked + sessions"]
+  B --> C["Mark locked sessions"]
+  C --> D["Group active sessions by Git origin"]
+  D --> E["Pick repo + unlocked sessions"]
   E --> F["Delete session files"]
   F --> H["Purge current stores"]
   H --> G["Summary"]
@@ -57,7 +58,7 @@ These are private Codex implementation details, not a stable public API. Dexcow 
 
 ### List sessions
 
-Related files: `src/index.ts`, `src/commands.ts`, `src/threads.ts`, `src/sessionIndex.ts`, `src/format.ts`.
+Related files: `src/index.ts`, `src/commands.ts`, `src/threads.ts`, `src/desktopCatalog.ts`, `src/sessionIndex.ts`, `src/format.ts`.
 
 ```mermaid
 flowchart LR
@@ -95,13 +96,13 @@ flowchart LR
 
 It leaves authentication, configuration, memories, goals, skills, attachments, worktrees, global UI state, and automation definitions alone.
 
-The interactive picker hides sessions with a matching `thread-writer-locks/<id>.lock` file. Before changing anything, the purge layer checks again and refuses deletion if Codex acquired a lock after selection.
+The interactive picker shows sessions with a matching `thread-writer-locks/<id>.lock` file as locked but excludes them from the checkbox list. It checks again before confirmation, and the purge layer performs a final lock check before changing anything.
 
 State-store discovery validates the root `~/.codex/state_5.sqlite` schema and never falls back to stale nested copies. SQLite busy errors are retried briefly; missing, temporarily unavailable, and unsupported stores remain distinct error states.
 
 ## JSONL Handling
 
-`session_index.jsonl` currently contains `id`, `thread_name`, and `updated_at`; dexcow uses it for display names and removes every entry matching a purged id. Rollout JSONL files contain evolving event and response-item types, but dexcow deletes each selected file as an opaque artifact and does not depend on its internal event schema.
+`session_index.jsonl` currently contains `id`, `thread_name`, and `updated_at`; dexcow uses it as a title fallback and removes every entry matching a purged id. Display titles prefer `threads.name`, then the Desktop catalog title, then the session index, matching current Codex metadata as closely as possible. Rollout JSONL files contain evolving event and response-item types, but dexcow deletes each selected file as an opaque artifact and does not depend on its internal event schema.
 
 ## Test Coverage
 
