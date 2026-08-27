@@ -31,42 +31,28 @@
   <circle cx="72" cy="197" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
   <text x="100" y="207" class="term muted">atlas-web</text>
   <text x="600" y="207" class="term muted">12 sessions</text>
-  <text x="820" y="207" class="term muted">latest</text>
-  <text x="990" y="207" class="term muted">14m</text>
 
   <circle cx="72" cy="233" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
   <text x="100" y="243" class="term muted">playground-api</text>
   <text x="600" y="243" class="term muted">4 sessions</text>
-  <text x="820" y="243" class="term muted">latest</text>
-  <text x="990" y="243" class="term muted">2h</text>
 
   <circle cx="72" cy="269" r="9" fill="#5ef78d"/>
   <text x="100" y="279" class="term fg">codex-notes</text>
   <text x="600" y="279" class="term fg">7 sessions</text>
-  <text x="820" y="279" class="term fg">latest</text>
-  <text x="990" y="279" class="term fg">6h</text>
 
   <circle cx="72" cy="305" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
   <text x="100" y="315" class="term muted">site-builder</text>
   <text x="600" y="315" class="term muted">3 sessions</text>
-  <text x="820" y="315" class="term muted">latest</text>
-  <text x="990" y="315" class="term muted">1d</text>
 
   <circle cx="72" cy="341" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
   <text x="100" y="351" class="term muted">design-lab</text>
   <text x="600" y="351" class="term muted">1 session</text>
-  <text x="820" y="351" class="term muted">latest</text>
-  <text x="990" y="351" class="term muted">4d</text>
 
   <circle cx="72" cy="377" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
   <text x="100" y="387" class="term muted">dexcow-demo</text>
   <text x="600" y="387" class="term muted">2 sessions</text>
-  <text x="820" y="387" class="term muted">latest</text>
-  <text x="990" y="387" class="term muted">6d</text>
 
   <circle cx="72" cy="413" r="8" fill="none" stroke="#9a9aa6" stroke-width="3"/>
   <text x="100" y="423" class="term muted">release-sandbox</text>
   <text x="600" y="423" class="term muted">1 session</text>
-  <text x="820" y="423" class="term muted">latest</text>
-  <text x="990" y="423" class="term muted">9d</text>
 </svg>

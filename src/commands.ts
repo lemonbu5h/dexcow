@@ -187,10 +187,9 @@ function renderRepoOptionLabel(
   const displayName = threadGroupLabel(group, allGroups);
   const name = truncate(displayName, 28).padEnd(28);
   const count = `${group.threads.length} session${group.threads.length === 1 ? "" : "s"}`;
-  const latest = relativeTime(group.threads[0]?.updatedAt ?? new Date()).padStart(4);
   const lockedCount = group.threads.filter((thread) => lockedIds.has(thread.id)).length;
   const locked = lockedCount > 0 ? `  ${pc.yellow(`${lockedCount} locked`)}` : "";
-  return `${name}  ${count.padEnd(10)}  latest ${latest}${locked}`;
+  return `${name}  ${count}${locked}`;
 }
 
 function renderSessionOptionLabel(t: Thread): string {
