@@ -47,6 +47,22 @@ test("listThreads falls back to the Desktop catalog title", async () => {
   }
 });
 
+test("listThreads falls back to a readable state title when optional title stores are unavailable", async () => {
+  const fixture = await createFixture();
+  const db = new Database(fixture.stateDbPath, { create: false, readwrite: true });
+  try {
+    db.query("UPDATE threads SET name = NULL WHERE id = ?").run("thread-1");
+    const threads = await listThreads(db, {
+      sessionIndexPath: join(fixture.stateDbPath, "missing-index.jsonl"),
+      desktopDbPath: join(fixture.stateDbPath, "missing-desktop.db"),
+    });
+
+    expect(threads[0]?.title).toBe("Read this first");
+  } finally {
+    db.close();
+  }
+});
+
 test("listThreads hides internal subagent sessions in every scope", async () => {
   const fixture = await createFixture();
   const db = new Database(fixture.stateDbPath, { create: false, readwrite: true });

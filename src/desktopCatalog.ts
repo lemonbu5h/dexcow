@@ -22,18 +22,10 @@ export function loadDesktopThreadTitles(desktopDbPath = paths.desktopDb): Map<st
       if (!titles.has(row.thread_id)) titles.set(row.thread_id, row.display_title!.trim());
     }
     return titles;
-  } catch (error) {
-    if (isOptionalStoreError(error)) return new Map();
-    throw error;
+  } catch {
+    // Desktop titles are optional metadata; state-store titles remain available as fallbacks.
+    return new Map();
   } finally {
     db?.close();
   }
-}
-
-function isOptionalStoreError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.includes("unable to open")
-    || message.includes("ENOENT")
-    || message.includes("no such table")
-    || message.includes("no such column");
 }
