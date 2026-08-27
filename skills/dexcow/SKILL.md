@@ -22,6 +22,7 @@ bun bin/dexcow-agent.js <command>
    ```
 
    Summarize the relevant repositories and sessions. Do not expose rollout paths unless the user asks.
+   Sessions with `locked: true` are open in Codex. Show them for context, but do not offer them for deletion until the user closes the task and lists again.
 
    If the user explicitly asks to clean up sessions hidden from the normal Codex sidebar, list archived sessions separately:
 

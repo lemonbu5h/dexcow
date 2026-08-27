@@ -27,25 +27,25 @@ export async function runInteractive(scope: ThreadScope = "active"): Promise<voi
     }
 
     const lockedIds = new Set(findLockedThreadIds(new Set(threads.map((thread) => thread.id))));
-    const availableThreads = threads.filter((thread) => !lockedIds.has(thread.id));
-    if (lockedIds.size > 0) {
-      const noun = lockedIds.size === 1 ? "task is" : "tasks are";
-      p.note(`${lockedIds.size} open ${noun} currently in use by Codex and hidden.`, "in use");
-    }
-    if (availableThreads.length === 0) {
-      p.outro("close the open task in Codex and try again");
-      return;
-    }
-
-    const target = await pickInteractiveGroup(availableThreads);
+    const target = await pickInteractiveGroup(threads, lockedIds);
     if (p.isCancel(target)) {
       exitCleanly("exited; no changes made");
       return;
     }
 
+    const lockedThreads = target.threads.filter((thread) => lockedIds.has(thread.id));
+    const availableThreads = target.threads.filter((thread) => !lockedIds.has(thread.id));
+    if (lockedThreads.length > 0) {
+      p.note(lockedThreads.map(renderLockedLine).join("\n"), "open in Codex; unavailable");
+    }
+    if (availableThreads.length === 0) {
+      p.outro("close an open task in Codex and try again");
+      return;
+    }
+
     const picked = await p.multiselect<string>({
       message: "Pick sessions to delete (space toggles, enter continues, q exits)",
-      options: target.threads.map((thread) => ({
+      options: availableThreads.map((thread) => ({
         value: thread.id,
         label: renderSessionOptionLabel(thread),
       })),
@@ -59,7 +59,17 @@ export async function runInteractive(scope: ThreadScope = "active"): Promise<voi
     }
 
     const ids = new Set(picked);
-    const chosen = availableThreads.filter((t) => ids.has(t.id));
+    let chosen = availableThreads.filter((t) => ids.has(t.id));
+    const newlyLockedIds = new Set(findLockedThreadIds(new Set(chosen.map((thread) => thread.id))));
+    if (newlyLockedIds.size > 0) {
+      const newlyLocked = chosen.filter((thread) => newlyLockedIds.has(thread.id));
+      p.note(newlyLocked.map(renderLockedLine).join("\n"), "opened in Codex; removed from selection");
+      chosen = chosen.filter((thread) => !newlyLockedIds.has(thread.id));
+    }
+    if (chosen.length === 0) {
+      p.outro("no available sessions selected; no changes made");
+      return;
+    }
     p.note(chosen.map(renderChosenLine).join("\n"), "selected");
     const confirmed = await p.confirm({
       message: `permanently delete ${pc.bold(String(chosen.length))} session(s)?`,
@@ -87,7 +97,8 @@ export async function runList(scope: ThreadScope = "active"): Promise<void> {
       console.log("(no sessions)");
       return;
     }
-    console.log(formatThreadGroups(threads));
+    const lockedIds = new Set(findLockedThreadIds(new Set(threads.map((thread) => thread.id))));
+    console.log(formatThreadGroups(threads, lockedIds));
   } finally {
     db.close();
   }
@@ -148,7 +159,10 @@ function exitCleanly(message: string): void {
   p.outro(pc.dim(message));
 }
 
-async function pickInteractiveGroup(threads: Thread[]): Promise<ThreadGroup | symbol> {
+async function pickInteractiveGroup(
+  threads: Thread[],
+  lockedIds: ReadonlySet<string>,
+): Promise<ThreadGroup | symbol> {
   const groups = groupThreadsByProject(threads);
   if (groups.length === 1) return groups[0]!;
 
@@ -156,7 +170,7 @@ async function pickInteractiveGroup(threads: Thread[]): Promise<ThreadGroup | sy
     message: "Pick a repo or unlinked sessions",
     options: groups.map((group) => ({
       value: group.id,
-      label: renderRepoOptionLabel(group, groups),
+      label: renderRepoOptionLabel(group, groups, lockedIds),
     })),
     maxItems: 12,
   });
@@ -165,12 +179,18 @@ async function pickInteractiveGroup(threads: Thread[]): Promise<ThreadGroup | sy
   return groups.find((group) => group.id === chosen) ?? groups[0]!;
 }
 
-function renderRepoOptionLabel(group: ThreadGroup, allGroups: ThreadGroup[]): string {
+function renderRepoOptionLabel(
+  group: ThreadGroup,
+  allGroups: ThreadGroup[],
+  lockedIds: ReadonlySet<string>,
+): string {
   const displayName = threadGroupLabel(group, allGroups);
   const name = truncate(displayName, 28).padEnd(28);
   const count = `${group.threads.length} session${group.threads.length === 1 ? "" : "s"}`;
   const latest = relativeTime(group.threads[0]?.updatedAt ?? new Date()).padStart(4);
-  return `${name}  ${count.padEnd(10)}  latest ${latest}`;
+  const lockedCount = group.threads.filter((thread) => lockedIds.has(thread.id)).length;
+  const locked = lockedCount > 0 ? `  ${pc.yellow(`${lockedCount} locked`)}` : "";
+  return `${name}  ${count.padEnd(10)}  latest ${latest}${locked}`;
 }
 
 function renderSessionOptionLabel(t: Thread): string {
@@ -182,4 +202,10 @@ function renderSessionOptionLabel(t: Thread): string {
 
 function renderChosenLine(t: Thread): string {
   return `${projectName(t.cwd)} - ${truncate(t.title, 72)}`;
+}
+
+function renderLockedLine(t: Thread): string {
+  const age = relativeTime(t.updatedAt).padStart(4);
+  const title = truncate(t.title, 62);
+  return `${pc.dim(age)}  ${title}  ${pc.yellow("locked")}`;
 }

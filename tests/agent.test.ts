@@ -36,7 +36,7 @@ test("agent lists sessions as structured data", async () => {
   expect(fixture.output[0]).toMatchObject({
     operation: "list",
     scope: "active",
-    sessions: [{ id: "thread-1", title: "Demo session", cwd: "/tmp/demo", archived: false }],
+    sessions: [{ id: "thread-1", title: "Demo session", cwd: "/tmp/demo", archived: false, locked: true }],
   });
 });
 
@@ -102,6 +102,9 @@ function createFixture() {
       if (scope === "archived") return archivedSessions;
       if (scope === "all") return [...activeSessions, ...archivedSessions];
       return activeSessions;
+    },
+    findLockedIds(sessions) {
+      return new Set(sessions.some((session) => session.id === "thread-1") ? ["thread-1"] : []);
     },
     async purge(selected) {
       purgeCalls.push({ ids: selected.map((session) => session.id) });
