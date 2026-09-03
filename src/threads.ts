@@ -29,7 +29,7 @@ const SELECT_THREADS = `
   FROM threads
 `;
 
-const USER_FACING_THREAD = "COALESCE(thread_source, '') <> 'subagent'";
+const USER_FACING_THREAD = "COALESCE(thread_source, '') NOT IN ('subagent', 'guardian_review')";
 
 export type ThreadScope = "active" | "archived" | "all";
 

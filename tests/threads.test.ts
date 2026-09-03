@@ -63,7 +63,7 @@ test("listThreads falls back to a readable state title when optional title store
   }
 });
 
-test("listThreads hides internal subagent sessions in every scope", async () => {
+test("listThreads hides internal Codex sessions in every scope", async () => {
   const fixture = await createFixture();
   const db = new Database(fixture.stateDbPath, { create: false, readwrite: true });
   try {
@@ -84,7 +84,7 @@ test("openDb opens an existing state database", async () => {
   const fixture = await createFixture();
   const db = openDb(fixture.stateDbPath);
   try {
-    expect(db.query("SELECT count(*) AS count FROM threads").get()).toEqual({ count: 4 });
+    expect(db.query("SELECT count(*) AS count FROM threads").get()).toEqual({ count: 6 });
   } finally {
     db.close();
   }
@@ -104,6 +104,8 @@ async function createFixture(): Promise<{ stateDbPath: string; sessionIndexPath:
     insert.run("thread-2", null, "/tmp/two.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "Ignored title", 2, 1, "cli");
     insert.run("subagent-active", null, "/tmp/subagent-active.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "[260] user:", 3, 0, "subagent");
     insert.run("subagent-archived", null, "/tmp/subagent-archived.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "Reviewer transcript", 4, 1, "subagent");
+    insert.run("guardian-active", null, "/tmp/guardian-active.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "The following is the Codex agent history whose request action you are assessing.", 5, 0, "guardian_review");
+    insert.run("guardian-archived", null, "/tmp/guardian-archived.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "", 6, 1, "guardian_review");
   } finally {
     db.close();
   }
