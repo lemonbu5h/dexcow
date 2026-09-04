@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-REPO="lemonbu5h/dexcow"
+REPO="lemonbu5h/codex-cow"
 VERSION="${DEXCOW_VERSION:-latest}"
 INSTALL_DIR="${DEXCOW_INSTALL_DIR:-}"
 

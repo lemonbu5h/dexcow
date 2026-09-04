@@ -1,11 +1,11 @@
-# dexcow
+# Codex Cow
 
-[![CI](https://github.com/lemonbu5h/dexcow/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonbu5h/dexcow/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/lemonbu5h/dexcow/branch/main/graph/badge.svg)](https://codecov.io/gh/lemonbu5h/dexcow)
-[![Release](https://github.com/lemonbu5h/dexcow/actions/workflows/release.yml/badge.svg)](https://github.com/lemonbu5h/dexcow/actions/workflows/release.yml)
+[![CI](https://github.com/lemonbu5h/codex-cow/actions/workflows/ci.yml/badge.svg)](https://github.com/lemonbu5h/codex-cow/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/lemonbu5h/codex-cow/branch/main/graph/badge.svg)](https://codecov.io/gh/lemonbu5h/codex-cow)
+[![Release](https://github.com/lemonbu5h/codex-cow/actions/workflows/release.yml/badge.svg)](https://github.com/lemonbu5h/codex-cow/actions/workflows/release.yml)
 [![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-black?logo=bun)](https://bun.sh)
 
-Delete local Codex sessions from your terminal. Pick a repo, select sessions, and confirm.
+Clean up local Codex sessions with `dexcow`. Pick a repo, select sessions, and confirm.
 
 **Prefer the built-in option?** In Codex, archive a session, then open **Settings → Archived chats** to delete it. No extra tool needed.
 
@@ -26,7 +26,7 @@ Use dexcow to select multiple sessions by repo. An [agent skill](docs/usage.md#a
 macOS Apple Silicon and Linux x64. **No Bun installation required.**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/lemonbu5h/dexcow/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/lemonbu5h/codex-cow/main/install.sh | sh
 dexcow
 ```
 
@@ -34,7 +34,7 @@ Press space to select sessions, then enter to review the selected sessions and c
 
 Run `dexcow help` for commands, or `dexcow archived` to select archived sessions for deletion.
 
-[Manual downloads](https://github.com/lemonbu5h/dexcow/releases/latest) · [Agent skill setup](docs/usage.md#agent-skill) · [Run from source](docs/development.md)
+[Manual downloads](https://github.com/lemonbu5h/codex-cow/releases/latest) · [Agent skill setup](docs/usage.md#agent-skill) · [Run from source](docs/development.md)
 
 ## Safety
 

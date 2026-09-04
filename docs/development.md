@@ -5,8 +5,8 @@
 Install [Bun](https://bun.sh), then:
 
 ```bash
-git clone https://github.com/lemonbu5h/dexcow.git
-cd dexcow
+git clone https://github.com/lemonbu5h/codex-cow.git
+cd codex-cow
 bun install
 bun run build
 bun link

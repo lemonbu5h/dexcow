@@ -30,7 +30,7 @@ If deleted sessions still appear in Codex, restart the app to refresh its list.
 
 The [installer](../install.sh) selects a release binary for macOS Apple Silicon or Linux x64. It uses `/usr/local/bin` when writable, otherwise `~/.local/bin`. Follow its PATH instructions if needed.
 
-You can also download a binary from [GitHub Releases](https://github.com/lemonbu5h/dexcow/releases/latest):
+You can also download a binary from [GitHub Releases](https://github.com/lemonbu5h/codex-cow/releases/latest):
 
 - macOS Apple Silicon: `dexcow-macos-arm64`
 - Linux x64: `dexcow-linux-x64`
