@@ -31,7 +31,7 @@
 7. Verify the install script:
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/lemonbu5h/dexcow/main/install.sh | sh
+   curl -fsSL https://raw.githubusercontent.com/lemonbu5h/codex-cow/main/install.sh | sh
    dexcow --version
    ```
 
