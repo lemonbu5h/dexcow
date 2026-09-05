@@ -63,6 +63,27 @@ test("listThreads falls back to a readable state title when optional title store
   }
 });
 
+test("listThreads loads the Codex project title for a project root", async () => {
+  const fixture = await createFixture();
+  const db = new Database(fixture.stateDbPath, { create: false, readwrite: true });
+  try {
+    db.run("CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, position INTEGER NOT NULL)");
+    db.run("CREATE TABLE project_roots (project_id TEXT NOT NULL, position INTEGER NOT NULL, path TEXT NOT NULL)");
+    db.query("INSERT INTO projects VALUES (?, ?, ?)").run("project-1", "AI-CVD FDA", 0);
+    db.query("INSERT INTO project_roots VALUES (?, ?, ?)").run("project-1", 0, "/tmp/demo");
+    db.query("UPDATE threads SET git_origin_url = NULL WHERE id = ?").run("thread-1");
+
+    const threads = await listThreads(db, {
+      sessionIndexPath: fixture.sessionIndexPath,
+      desktopDbPath: fixture.desktopDbPath,
+    });
+
+    expect(threads[0]).toEqual(expect.objectContaining({ id: "thread-1", projectTitle: "AI-CVD FDA" }));
+  } finally {
+    db.close();
+  }
+});
+
 test("listThreads hides internal Codex sessions in every scope", async () => {
   const fixture = await createFixture();
   const db = new Database(fixture.stateDbPath, { create: false, readwrite: true });
@@ -98,7 +119,7 @@ async function createFixture(): Promise<{ stateDbPath: string; sessionIndexPath:
   const desktopDbPath = join(root, "codex-dev.db");
   const db = new Database(stateDbPath, { create: true, readwrite: true });
   try {
-    db.run("CREATE TABLE threads (id TEXT PRIMARY KEY, name TEXT, rollout_path TEXT NOT NULL, cwd TEXT NOT NULL, git_origin_url TEXT NOT NULL, title TEXT NOT NULL, updated_at INTEGER NOT NULL, archived INTEGER NOT NULL, thread_source TEXT)");
+    db.run("CREATE TABLE threads (id TEXT PRIMARY KEY, name TEXT, rollout_path TEXT NOT NULL, cwd TEXT NOT NULL, git_origin_url TEXT, title TEXT NOT NULL, updated_at INTEGER NOT NULL, archived INTEGER NOT NULL, thread_source TEXT)");
     const insert = db.query("INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     insert.run("thread-1", "Explicit name", "/tmp/one.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "[Read this first](https://example.com)\nMore detail", 1, 0, "cli");
     insert.run("thread-2", null, "/tmp/two.jsonl", "/tmp/demo", "git@github.com:demo/repo.git", "Ignored title", 2, 1, "cli");

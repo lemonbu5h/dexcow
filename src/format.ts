@@ -14,9 +14,6 @@ export interface ThreadGroup {
   threads: Thread[];
 }
 
-const UNLINKED_GROUP_ID = "dexcow:unlinked";
-const UNLINKED_GROUP_NAME = "Unlinked sessions";
-
 export function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
   return text.slice(0, Math.max(0, max - 1)) + "…";
@@ -54,7 +51,7 @@ export function groupThreadsByProject(threads: Thread[]): ThreadGroup[] {
   for (const thread of threads) {
     const originId = canonicalGitOrigin(thread.gitOriginUrl);
     const linked = originId.length > 0;
-    const groupId = linked ? `repo:${originId}` : UNLINKED_GROUP_ID;
+    const groupId = linked ? `repo:${originId}` : `cwd:${thread.cwd}`;
     const group = groups.get(groupId);
     if (group) {
       group.threads.push(thread);
@@ -69,7 +66,13 @@ export function groupThreadsByProject(threads: Thread[]): ThreadGroup[] {
           kind: "project",
           threads: [thread],
         }
-      : { id: groupId, project: UNLINKED_GROUP_NAME, kind: "unlinked", threads: [thread] });
+      : {
+          id: groupId,
+          cwd: thread.cwd,
+          project: thread.projectTitle ?? projectName(thread.cwd),
+          kind: "unlinked",
+          threads: [thread],
+        });
   }
 
   return Array.from(groups.values())
@@ -119,15 +122,13 @@ function compareThreadsByRecent(a: Thread | undefined, b: Thread | undefined): n
 }
 
 export function threadGroupLabel(group: ThreadGroup, allGroups: ThreadGroup[]): string {
-  if (group.kind === "unlinked") return `${UNLINKED_GROUP_NAME} (no Git repo)`;
-  const duplicateName = group.project === UNLINKED_GROUP_NAME
-    || allGroups.some((other) => other.id !== group.id && other.project === group.project);
+  const duplicateName = allGroups.some((other) => other.id !== group.id && other.project === group.project);
   if (!duplicateName) return group.project;
   return `${basename(dirname(group.cwd!))}/${group.project}`;
 }
 
 function preferredRepoDisplay(group: ThreadGroup): Pick<ThreadGroup, "cwd" | "project"> {
-  if (group.kind === "unlinked") return { project: UNLINKED_GROUP_NAME };
+  if (group.kind === "unlinked") return { cwd: group.cwd, project: group.project };
   const primary = group.threads.find((thread) => !thread.cwd.includes("/.codex/worktrees/"));
   if (primary) return { cwd: primary.cwd, project: projectName(primary.cwd) };
   return { cwd: group.cwd, project: repoNameFromOrigin(group.gitOriginUrl ?? "") };

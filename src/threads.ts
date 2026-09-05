@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { openStateDb } from "./codexStores.ts";
 import { loadDesktopThreadTitles } from "./desktopCatalog.ts";
 import { loadThreadNames, type ThreadNameMap } from "./sessionIndex.ts";
+import { loadProjectTitles } from "./projectCatalog.ts";
 
 export interface Thread {
   id: string;
@@ -9,6 +10,7 @@ export interface Thread {
   rolloutPath: string;
   cwd: string;
   gitOriginUrl: string;
+  projectTitle?: string;
   updatedAt: Date;
   archived: boolean;
 }
@@ -19,7 +21,7 @@ interface ThreadRow {
   title: string;
   rollout_path: string;
   cwd: string;
-  git_origin_url: string;
+  git_origin_url: string | null;
   updated_at: number;
   archived: number;
 }
@@ -47,9 +49,10 @@ export async function listThreads(db: Database, opts: ListThreadOptions = {}): P
   // The state database owns deletion state; the other stores only improve user-facing titles.
   const desktopTitles = loadDesktopThreadTitles(opts.desktopDbPath);
   const names = await loadThreadNames(opts.sessionIndexPath);
+  const projectTitles = loadProjectTitles(db);
   const where = scopeFilter(opts.scope);
   return db.query(`${SELECT_THREADS} ${where} ORDER BY updated_at DESC, id DESC`).all()
-    .map((row) => toThread(row, desktopTitles, names));
+    .map((row) => toThread(row, desktopTitles, names, projectTitles));
 }
 
 function scopeFilter(scope: ThreadScope | undefined): string {
@@ -58,14 +61,20 @@ function scopeFilter(scope: ThreadScope | undefined): string {
   return `WHERE archived = 0 AND ${USER_FACING_THREAD}`;
 }
 
-function toThread(raw: unknown, desktopTitles: ReadonlyMap<string, string>, names: ThreadNameMap): Thread {
+function toThread(
+  raw: unknown,
+  desktopTitles: ReadonlyMap<string, string>,
+  names: ThreadNameMap,
+  projectTitles: ReadonlyMap<string, string>,
+): Thread {
   const r = raw as ThreadRow;
   return {
     id: r.id,
     title: resolveTitle(r, desktopTitles, names),
     rolloutPath: r.rollout_path,
     cwd: r.cwd,
-    gitOriginUrl: r.git_origin_url,
+    gitOriginUrl: r.git_origin_url ?? "",
+    projectTitle: projectTitles.get(r.cwd),
     updatedAt: new Date(r.updated_at * 1000),
     archived: r.archived === 1,
   };

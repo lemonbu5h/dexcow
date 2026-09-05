@@ -100,19 +100,24 @@ test("groupThreadsByProject collapses worktrees by canonical Git origin", () => 
   expect(groups[0]?.threads.map((item) => item.id).sort()).toEqual(["one", "repo", "two"]);
 });
 
-test("sessions without a Git origin are unlinked without colliding with a real repo", () => {
+test("sessions without a Git origin are grouped and labeled by working directory", () => {
   const groups = groupThreadsByProject([
-    thread("/existing/Unlinked sessions", {
+    thread("/existing/folder", {
       id: "real",
-      gitOriginUrl: "git@github.com:demo/unlinked-sessions.git",
+      gitOriginUrl: "git@github.com:demo/folder.git",
     }),
     thread("/removed/folder", { id: "missing", gitOriginUrl: "" }),
+    thread("/another/project", { id: "another", gitOriginUrl: "", projectTitle: "Actual Codex title" }),
   ]);
 
+  const unlinked = groups.filter((group) => group.kind === "unlinked");
   const real = groups.find((group) => group.kind === "project")!;
-  expect(groups[0]).toMatchObject({ id: "dexcow:unlinked", kind: "unlinked" });
-  expect(real.id).toBe("repo:github.com/demo/unlinked-sessions");
-  expect(formatThreadGroupHeader(real, groups)).toContain("existing/Unlinked sessions");
+  expect(unlinked).toHaveLength(2);
+  expect(unlinked.map((group) => group.project).sort()).toEqual(["Actual Codex title", "folder"]);
+  expect(unlinked.find((group) => group.project === "folder")?.id).toBe("cwd:/removed/folder");
+  expect(formatThreadGroupHeader(unlinked.find((group) => group.project === "folder")!, groups))
+    .toContain("removed/folder");
+  expect(formatThreadGroupHeader(real, groups)).toContain("existing/folder");
 });
 
 function thread(cwd: string, overrides: Partial<Thread> = {}): Thread {

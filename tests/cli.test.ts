@@ -29,6 +29,26 @@ test("locked deletion prints a friendly error without a stack trace", async () =
   }
 });
 
+test("list renders sessions without a Git origin in active and archived scopes", async () => {
+  const codexHome = await createLockedSessionFixture();
+  const db = new Database(join(codexHome, "state_5.sqlite"), { create: false, readwrite: true });
+  try {
+    db.run("UPDATE threads SET git_origin_url = NULL");
+    for (const archived of [0, 1]) {
+      db.query("UPDATE threads SET archived = ?").run(archived);
+      const { exitCode, stdout, stderr } = await runCli(codexHome, archived ? ["ls", "--archived"] : ["ls"]);
+      expect(exitCode).toBe(0);
+      expect(stderr).toBe("");
+      expect(stdout).toContain("Total 1 session");
+      expect(stdout).toContain("demo  1 session");
+      expect(stdout).toContain("Locked session");
+      expect(stdout).toContain(archived ? "archived" : "active");
+    }
+  } finally {
+    db.close();
+  }
+});
+
 test("missing state database is reported as not installed", async () => {
   const codexHome = await createCodexHome();
   const { exitCode, stderr } = await runCli(codexHome);
@@ -63,18 +83,19 @@ test("incompatible state database is reported as unsupported", async () => {
   expect(stderr).not.toContain("Is Codex installed?");
 });
 
-async function runCli(codexHome: string, args: string[] = ["ls"]): Promise<{ exitCode: number; stderr: string }> {
+async function runCli(codexHome: string, args: string[] = ["ls"]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   const process = Bun.spawn(["bun", "run", "src/index.ts", ...args], {
     cwd: join(import.meta.dir, ".."),
     env: { ...Bun.env, CODEX_HOME: codexHome, NO_COLOR: "1" },
     stdout: "pipe",
     stderr: "pipe",
   });
-  const [exitCode, stderr] = await Promise.all([
+  const [exitCode, stdout, stderr] = await Promise.all([
     process.exited,
+    new Response(process.stdout).text(),
     new Response(process.stderr).text(),
   ]);
-  return { exitCode, stderr };
+  return { exitCode, stdout, stderr };
 }
 
 async function createCodexHome(): Promise<string> {
