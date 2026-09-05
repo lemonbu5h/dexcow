@@ -10,9 +10,9 @@ import {
   projectName,
   relativeTime,
   shortenCwd,
-  threadGroupLabel,
   truncate,
 } from "./format.ts";
+import { renderRepoOptionLabel } from "./repoOption.ts";
 
 export async function runInteractive(scope: ThreadScope = "active"): Promise<void> {
   p.intro(pc.bgMagenta(pc.black(" dexcow ")) + pc.dim(" cow eats Codex sessions"));
@@ -177,19 +177,6 @@ async function pickInteractiveGroup(
 
   if (p.isCancel(chosen)) return chosen;
   return groups.find((group) => group.id === chosen) ?? groups[0]!;
-}
-
-function renderRepoOptionLabel(
-  group: ThreadGroup,
-  allGroups: ThreadGroup[],
-  lockedIds: ReadonlySet<string>,
-): string {
-  const displayName = threadGroupLabel(group, allGroups);
-  const name = truncate(displayName, 28).padEnd(28);
-  const count = `${group.threads.length} session${group.threads.length === 1 ? "" : "s"}`;
-  const lockedCount = group.threads.filter((thread) => lockedIds.has(thread.id)).length;
-  const locked = lockedCount > 0 ? `  ${pc.yellow(`${lockedCount} locked`)}` : "";
-  return `${name}  ${count}${locked}`;
 }
 
 function renderSessionOptionLabel(t: Thread): string {
